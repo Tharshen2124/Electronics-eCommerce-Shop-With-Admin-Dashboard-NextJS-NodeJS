@@ -1,10 +1,9 @@
-import { sum } from "@/helpers/sum";
+import { isValidEmailAddressFormat } from "@/lib/utils";
 
-describe('sum', () => {
-    it('should return the sum of two numbers', () => {
-        expect(sum(1, 2)).toBe(3);
-        expect(sum(-1, 1)).toBe(0);
-        expect(sum(0, 0)).toBe(0);
-    }
-    );
-})
+describe("isValidEmailAddressFormat", () => {
+    it("should return true for a valid email and false for invalid formats", () => {
+        expect(isValidEmailAddressFormat("user@example.com")).toBe(true);
+        expect(isValidEmailAddressFormat("invalid-email")).toBe(false);
+        expect(isValidEmailAddressFormat("user@domain")).toBe(false);
+    });
+});
