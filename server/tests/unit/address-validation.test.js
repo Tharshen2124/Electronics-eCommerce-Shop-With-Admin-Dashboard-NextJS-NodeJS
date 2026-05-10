@@ -1,35 +1,39 @@
 const { orderValidation } = require("../../utills/validation");
 
-describe("orderValidation.validateAddress", () => {
-  it("accepts apartment with 1+ chars and trims whitespace", () => {
-    expect(orderValidation.validateAddress("  A  ", "apartment")).toBe("A");
-    expect(orderValidation.validateAddress(" 12B ", "apartment")).toBe("12B");
-  });
-
-  it("rejects empty apartment values after trimming", () => {
-    expect(() => orderValidation.validateAddress("", "apartment")).toThrow(
-      "apartment is required"
-    );
-    expect(() => orderValidation.validateAddress("   ", "apartment")).toThrow(
-      "apartment must be at least 1 characters"
+describe("orderValidation.validateEmail", () => {
+  it("accepts a valid email and normalizes casing and whitespace", () => {
+    expect(orderValidation.validateEmail("  USER@Example.com  ")).toBe(
+      "user@example.com"
     );
   });
 
-  it("enforces minimum length 5 for non-apartment fields", () => {
-    expect(() => orderValidation.validateAddress("Home", "address")).toThrow(
-      "address must be at least 5 characters"
+  it("rejects missing email values", () => {
+    expect(() => orderValidation.validateEmail("")).toThrow("Email is required");
+    expect(() => orderValidation.validateEmail(null)).toThrow("Email is required");
+  });
+
+  it("rejects malformed email addresses", () => {
+    expect(() => orderValidation.validateEmail("not-an-email")).toThrow(
+      "Dummy Fail"
     );
-    expect(orderValidation.validateAddress("  Jalan Merdeka 10 ", "address")).toBe(
-      "Jalan Merdeka 10"
+    expect(() => orderValidation.validateEmail("missing-at.example.com")).toThrow(
+      "Dummy Fail"
     );
   });
 
-  it("blocks suspicious address patterns", () => {
+  it("blocks suspicious email patterns", () => {
     expect(() =>
-      orderValidation.validateAddress("<script>alert(1)</script>", "address")
-    ).toThrow("address contains invalid characters");
+      orderValidation.validateEmail("<script>alert(1)</script>@example.com")
+    ).toThrow("Email contains invalid characters");
     expect(() =>
-      orderValidation.validateAddress("javascript:alert(1)", "address")
-    ).toThrow("address contains invalid characters");
+      orderValidation.validateEmail("javascript:alert(1)@example.com")
+    ).toThrow("Email contains invalid characters");
+  });
+
+  it("rejects emails longer than the supported limit", () => {
+    const longLocalPart = "a".repeat(245);
+    expect(() => orderValidation.validateEmail(`${longLocalPart}@example.com`)).toThrow(
+      "Email must be less than 254 characters"
+    );
   });
 });

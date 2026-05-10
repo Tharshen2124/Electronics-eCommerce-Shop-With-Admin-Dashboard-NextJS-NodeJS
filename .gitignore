@@ -57,6 +57,8 @@ Thumbs.db
 .DS_Store
 
 /server/logs/*.log
+/server/logs/access.log
+/server/logs/error.log
 
 # Playwright
 node_modules/
@@ -65,3 +67,9 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# trace folders
+/trace/*
+
+/coverage/*
+/server/coverage/*
