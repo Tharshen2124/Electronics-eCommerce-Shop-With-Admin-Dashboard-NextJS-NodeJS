@@ -10,6 +10,7 @@
 
 import React from "react";
 import ProductItem from "./ProductItem";
+import PaginationSetter from "./PaginationSetter";
 import apiClient from "@/lib/api";
 
 const Products = async ({ params, searchParams }: { params: { slug?: string[] }, searchParams: { [key: string]: string | string[] | undefined } }) => {
@@ -39,6 +40,7 @@ const Products = async ({ params, searchParams }: { params: { slug?: string[] },
   }
 
   let products = [];
+  let totalPages = 1;
 
   try {
     // sending API request with filtering, sorting and pagination for getting all products
@@ -55,28 +57,34 @@ const Products = async ({ params, searchParams }: { params: { slug?: string[] },
 
     if (!data.ok) {
       console.error('Failed to fetch products:', data.statusText);
-      products = [];
     } else {
       const result = await data.json();
-      products = Array.isArray(result) ? result : [];
+      if (result && typeof result === "object" && "products" in result) {
+        products = Array.isArray(result.products) ? result.products : [];
+        totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
+      } else {
+        products = Array.isArray(result) ? result : [];
+      }
     }
   } catch (error) {
     console.error('Error fetching products:', error);
-    products = [];
   }
 
   return (
-    <div className="grid grid-cols-3 justify-items-center gap-x-2 gap-y-5 max-[1300px]:grid-cols-3 max-lg:grid-cols-2 max-[500px]:grid-cols-1">
-      {products.length > 0 ? (
-        products.map((product: any) => (
-          <ProductItem key={product.id} product={product} color="black" />
-        ))
-      ) : (
-        <h3 className="text-3xl mt-5 text-center w-full col-span-full max-[1000px]:text-2xl max-[500px]:text-lg">
-          No products found for specified query
-        </h3>
-      )}
-    </div>
+    <>
+      <PaginationSetter totalPages={totalPages} />
+      <div className="grid grid-cols-3 justify-items-center gap-x-2 gap-y-5 max-[1300px]:grid-cols-3 max-lg:grid-cols-2 max-[500px]:grid-cols-1">
+        {products.length > 0 ? (
+          products.map((product: any) => (
+            <ProductItem key={product.id} product={product} color="black" />
+          ))
+        ) : (
+          <h3 className="text-3xl mt-5 text-center w-full col-span-full max-[1000px]:text-2xl max-[500px]:text-lg">
+            No products found for specified query
+          </h3>
+        )}
+      </div>
+    </>
   );
 };
 

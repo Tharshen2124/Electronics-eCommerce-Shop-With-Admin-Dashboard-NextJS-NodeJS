@@ -26,10 +26,10 @@ export const POST = async (request: Request) => {
       throw validationResult.error;
     }
 
-    const { email, password } = validationResult.data;
+    const { name, lastname, email, password } = validationResult.data;
 
-    const existingUser = await prisma.user.findFirst({ 
-      where: { email } 
+    const existingUser = await prisma.user.findFirst({
+      where: { email }
     });
 
     if (existingUser) {
@@ -42,6 +42,8 @@ export const POST = async (request: Request) => {
     const newUser = await prisma.user.create({
       data: {
         id: nanoid(),
+        name,
+        lastname,
         email,
         password: hashedPassword,
         role: "user",
