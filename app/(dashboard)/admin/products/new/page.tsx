@@ -1,6 +1,7 @@
 "use client";
 import { DashboardSidebar } from "@/components";
 import apiClient from "@/lib/api";
+import config from "@/lib/config";
 import { convertCategoryNameToURLFriendly as convertSlugToURLFriendly } from "@/utils/categoryFormating";
 import { sanitizeFormData } from "@/lib/form-sanitize";
 import Image from "next/image";
@@ -31,6 +32,8 @@ const AddNewProduct = () => {
   });
   const [categories, setCategories] = useState<Category[]>([]);
   const [merchants, setMerchants] = useState<Merchant[]>([]);
+
+  console.log("Current product state:", product);
   const addProduct = async () => {
     if (
       !product.merchantId ||
@@ -92,23 +95,40 @@ const AddNewProduct = () => {
     }
   };
 
-  const uploadFile = async (file: any) => {
+  const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+  const MAX_IMAGE_SIZE_MB = 5;
+
+  const uploadFile = async (file: File): Promise<boolean> => {
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      toast.error("Only JPG, PNG, and WebP images are allowed");
+      return false;
+    }
+
+    if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+      toast.error(`Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB`);
+      return false;
+    }
+
     const formData = new FormData();
     formData.append("uploadedFile", file);
 
     try {
-      const response = await apiClient.post("/api/main-image", {
+      const response = await fetch(`${config.apiBaseUrl}/api/main-image`, {
         method: "POST",
         body: formData,
       });
 
       if (response.ok) {
-        const data = await response.json();
+        toast.success("Image uploaded successfully");
+        return true;
       } else {
-        console.error("File upload unsuccessfull");
+        toast.error("Image upload failed");
+        return false;
       }
     } catch (error) {
-      console.error("Error happend while sending request:", error);
+      console.error("Error uploading image:", error);
+      toast.error("Error uploading image");
+      return false;
     }
   };
 
@@ -275,14 +295,29 @@ const AddNewProduct = () => {
           </label>
         </div>
         <div>
-          <input
-            type="file"
-            className="file-input file-input-bordered file-input-lg w-full max-w-sm"
-            onChange={(e: any) => {
-              uploadFile(e.target.files[0]);
-              setProduct({ ...product, mainImage: e.target.files[0].name });
-            }}
-          />
+          <label className="form-control w-full max-w-sm">
+            <div className="label">
+              <span className="label-text">Product image:</span>
+            </div>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              className="file-input file-input-bordered file-input-lg w-full max-w-sm"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const success = await uploadFile(file);
+                if (success) {
+                  setProduct({ ...product, mainImage: file.name });
+                } else {
+                  e.target.value = "";
+                }
+              }}
+            />
+            <div className="label">
+              <span className="label-text-alt text-gray-500">Accepted formats: JPG, PNG, WebP · Max size: 5MB</span>
+            </div>
+          </label>
           {product?.mainImage && (
             <Image
               src={`/` + product?.mainImage}
