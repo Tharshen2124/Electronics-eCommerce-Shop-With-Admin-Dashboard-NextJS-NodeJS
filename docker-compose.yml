@@ -1,0 +1,75 @@
+services:
+  # ─── MySQL ────────────────────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: singitronic_nextjs
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # ─── Backend (Node.js / Express) ──────────────────────────────────────────────
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: "mysql://root:rootpassword@mysql:3306/singitronic_nextjs"
+      NODE_ENV: development
+      PORT: 3001
+      # Needed for CORS allow-list in app.js
+      NEXTAUTH_URL: "http://localhost:3000"
+      FRONTEND_URL: "http://localhost:3000"
+    volumes:
+      # Bind-mount the host public/ directory so uploaded images are written
+      # to the same folder that Next.js serves static assets from.
+      # The upload controller writes to ../public/ relative to /app/server,
+      # which resolves to /app/public inside the container.
+      - ./public:/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  # ─── Frontend (Next.js) ───────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://root:rootpassword@mysql:3306/singitronic_nextjs"
+      # Browser-side API calls reach the backend via the mapped host port.
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:3001"
+      # Server-side (SSR) API calls use the Docker service name instead, because
+      # localhost:3001 inside the frontend container points to itself, not the backend.
+      BACKEND_INTERNAL_URL: "http://backend:3001"
+      NEXTAUTH_SECRET: "12D16C923BA17672F89B18C1DB22A"
+      NEXTAUTH_URL: "http://localhost:3000"
+      NODE_ENV: development
+    volumes:
+      - ./public:/app/public
+    depends_on:
+      mysql:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
