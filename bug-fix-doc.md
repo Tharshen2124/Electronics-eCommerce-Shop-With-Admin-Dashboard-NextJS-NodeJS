@@ -2,11 +2,11 @@
 
 ---
 
-## BUG-CO6: Incorrect Checkout Scope Handling in Cart Module
+## BUG-C06: Incorrect Checkout Scope Handling in Cart Module
 
 | Field | Detail |
 |---|---|
-| **Bug ID** | BUG-CO6 |
+| **Bug ID** | BUG-C06 |
 | **Severity** | High |
 | **Module** | Shopping Cart / Checkout |
 | **Status** | Fixed |
@@ -216,11 +216,11 @@ docker compose exec backend node utills/insertDemoData.js
 
 ---
 
-## BUG-CO1: Name and Lastname Not Persisted on Registration
+## BUG-C01: Name and Lastname Not Persisted on Registration
 
 | Field | Detail |
 |---|---|
-| **Bug ID** | BUG-CO1 |
+| **Bug ID** | BUG-C01 |
 | **Severity** | High |
 | **Module** | Authentication / User Registration |
 | **Status** | Fixed |
@@ -297,11 +297,11 @@ A Prisma migration (`add-name-lastname-to-user`) must be run to apply the schema
 
 ---
 
-## BUG-CO2: Pagination Allows Infinite Page Increment
+## BUG-C02: Pagination Allows Infinite Page Increment
 
 | Field | Detail |
 |---|---|
-| **Bug ID** | BUG-CO2 |
+| **Bug ID** | BUG-C02 |
 | **Severity** | Medium |
 | **Module** | Shop / Pagination |
 | **Status** | Fixed |
@@ -383,22 +383,116 @@ const PaginationSetter = ({ totalPages }: { totalPages: number }) => {
 
 ---
 
-## BUG-CO4: Product Image Upload Silently Fails
+## BUG-C04: Shop Page Flashes Empty State Before Products Load
 
 | Field | Detail |
 |---|---|
-| **Bug ID** | BUG-CO4 |
+| **Bug ID** | BUG-C04 |
+| **Severity** | Medium |
+| **Module** | Shop / UI State Management |
+| **Status** | Fixed |
+
+### Context
+
+When navigating to a shop category from the home page, the shop page would briefly flash the message "No products found for specified query" before the category's products appeared. The issue was reproducible and clearly visible with a throttled network connection (slow 4G).
+
+### Root Cause
+
+`Products` was an async server component that fetched products on the server and conditionally rendered either the product grid or the "No products found" message based on whether `products.length > 0`. The initial `products` value was `[]`.
+
+`Filters.tsx` is a client component that calls `router.replace()` inside a `useEffect` with no dependencies other than its own local state, meaning it fires on every mount. This triggers a soft navigation via Next.js router, which internally uses React's `startTransition`. Transitions are designed to keep the old UI visible while the new render is pending — they do not trigger Suspense fallbacks on the already-mounted tree. As a result, on first load the shop page rendered with an empty product set (before `Filters` had set the URL params), producing a brief flash of the empty state before the correct products loaded.
+
+Adding a `<Suspense>` boundary around `Products` in `page.tsx` did not resolve the issue because the Suspense fallback is bypassed for updates triggered via `startTransition`.
+
+### Solution
+
+`Products` was converted from an async server component to a `"use client"` component that owns its loading state explicitly. It reads URL params directly via `useParams()` and `useSearchParams()` hooks and manages three distinct states — loading, empty, and populated — independently.
+
+**`components/Products.tsx`** — Converted to a client component. `isLoading` initialises to `true`, which means the Loader renders immediately on both the server (SSR) and the client before any fetch has been attempted. "No products found" can only appear after `isLoading` has been set to `false` by the `finally` block of a completed fetch.
+
+```tsx
+"use client";
+
+const Products = () => {
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const [products, setProducts] = useState<any[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        // ... fetch with current URL params
+        setProducts(result.products);
+        setTotalPages(...);
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [searchParams, params]);
+
+  if (isLoading) return <Loader />;
+
+  return (
+    <>
+      <PaginationSetter totalPages={totalPages} />
+      <div className="grid ...">
+        {products.length > 0 ? (
+          products.map((product) => <ProductItem key={product.id} ... />)
+        ) : (
+          <h3>No products found for specified query</h3>
+        )}
+      </div>
+    </>
+  );
+};
+```
+
+Because `Products` now reads `useSearchParams()` directly, it re-fetches automatically whenever `Filters` or `SortBy` update the URL — removing the need to pass `searchParams` as a prop from the page.
+
+**`app/shop/[[...slug]]/page.tsx`** — Removed `searchParams` from the component signature and props passed to `<Products />`. The `<Suspense>` wrapper is retained as the Next.js-recommended boundary for components that use `useSearchParams()`.
+
+```tsx
+const ShopPage = async ({ params }: { params: Promise<{ slug?: string[] }> }) => {
+  const awaitedParams = await params;
+  return (
+    ...
+    <Suspense fallback={<Loader />}>
+      <Products />
+    </Suspense>
+    ...
+  );
+};
+```
+
+### Files Affected
+
+- `components/Products.tsx`
+- `app/shop/[[...slug]]/page.tsx`
+
+---
+
+## BUG-C05: Product Image Upload and Validation Failures
+
+| Field | Detail |
+|---|---|
+| **Bug ID** | BUG-C05 |
 | **Severity** | High |
 | **Module** | Admin Dashboard / Product Management |
 | **Status** | Fixed |
 
 ### Context
 
-On both the "Add new product" and "Edit product" admin pages, selecting an image file appeared to succeed — the filename was reflected in the UI and the product could be saved — but the image was never actually uploaded to the server. Products were saved with a `mainImage` filename that pointed to a file that did not exist on disk.
+On both the "Add new product" and "Edit product" admin pages, selecting an image file appeared to succeed — the filename was reflected in the UI and the product could be saved — but the image was never actually uploaded to the server. Products were saved with a `mainImage` filename that pointed to a file that did not exist on disk. Additionally, the upload input accepted any file of any type and any size with no feedback to the user about what was expected.
 
 ### Root Cause
 
-`uploadFile` in both pages called `apiClient.post`, passing the `FormData` object as the `data` argument:
+**Upload failure** — `uploadFile` in both pages called `apiClient.post`, passing the `FormData` object as the `data` argument:
 
 ```ts
 // broken call in both pages
@@ -412,12 +506,26 @@ const response = await apiClient.post("/api/main-image", {
 
 Additionally, `mainImage` in the product state was set unconditionally before checking whether the upload actually succeeded, meaning a failed upload still wrote the filename to the product record.
 
+**No validation** — The `<input type="file">` elements had no `accept` attribute, no helper text describing constraints, and `uploadFile` performed no checks on the selected file before attempting the upload.
+
 ### Solution
 
-`uploadFile` in both `app/(dashboard)/admin/products/new/page.tsx` and `app/(dashboard)/admin/products/[id]/page.tsx` was replaced with a raw `fetch` call. Omitting `Content-Type` lets the browser correctly set `multipart/form-data` with the boundary parameter required by the server.
+`uploadFile` in both `app/(dashboard)/admin/products/new/page.tsx` and `app/(dashboard)/admin/products/[id]/page.tsx` was replaced with a raw `fetch` call that includes client-side type and size validation before the network request is made. Omitting `Content-Type` lets the browser correctly set `multipart/form-data` with the boundary parameter required by the server.
 
 ```ts
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const MAX_IMAGE_SIZE_MB = 5;
+
 const uploadFile = async (file: File): Promise<boolean> => {
+  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+    toast.error("Only JPG, PNG, and WebP images are allowed");
+    return false;
+  }
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    toast.error(`Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB`);
+    return false;
+  }
+
   const formData = new FormData();
   formData.append("uploadedFile", file);
 
@@ -451,53 +559,7 @@ onChange={async (e) => {
 }}
 ```
 
-### Files Affected
-
-- `app/(dashboard)/admin/products/new/page.tsx`
-- `app/(dashboard)/admin/products/[id]/page.tsx`
-
----
-
-## BUG-CO5: No Validation or Requirements on Image Upload Input
-
-| Field | Detail |
-|---|---|
-| **Bug ID** | BUG-CO5 |
-| **Severity** | Medium |
-| **Module** | Admin Dashboard / Product Management |
-| **Status** | Fixed |
-
-### Context
-
-The image upload input on both admin product pages accepted any file of any type and any size with no feedback to the user about what was expected. An admin could select a PDF, a spreadsheet, or a 500MB video — the input would accept it, and the upload attempt would either silently fail or write an incompatible file to the server's public directory.
-
-### Root Cause
-
-The `<input type="file">` elements had no `accept` attribute, no helper text describing constraints, and `uploadFile` performed no checks on the selected file before attempting the upload. There was no size limit and no type allowlist enforced at any layer on the client side.
-
-### Solution
-
-Client-side validation was added to `uploadFile` in both pages before the network request is made.
-
-```ts
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const MAX_IMAGE_SIZE_MB = 5;
-
-const uploadFile = async (file: File): Promise<boolean> => {
-  if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-    toast.error("Only JPG, PNG, and WebP images are allowed");
-    return false;
-  }
-
-  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-    toast.error(`Image must be smaller than ${MAX_IMAGE_SIZE_MB}MB`);
-    return false;
-  }
-  // ... upload proceeds
-};
-```
-
-The file input was also updated with an `accept` attribute to filter the OS file picker, and a helper line was added below it so requirements are visible before a file is chosen.
+The file input was also updated with an `accept` attribute and a helper line below it so requirements are visible before a file is chosen.
 
 ```tsx
 <input
@@ -509,8 +571,6 @@ The file input was also updated with an `accept` attribute to filter the OS file
   Accepted formats: JPG, PNG, WebP · Max size: 5MB
 </span>
 ```
-
-If validation fails the file input is reset (`e.target.value = ""`), forcing the user to re-select rather than leaving a rejected file name in the input.
 
 ### Files Affected
 

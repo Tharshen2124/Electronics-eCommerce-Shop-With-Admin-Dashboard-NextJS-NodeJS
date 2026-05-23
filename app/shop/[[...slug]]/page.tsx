@@ -8,7 +8,8 @@ import {
   Products,
   SortBy,
 } from "@/components";
-import React from "react";
+import { Loader } from "@/components/Loader";
+import React, { Suspense } from "react";
 import { sanitize } from "@/lib/sanitize";
 
 // improve readabillity of category text, for example category text "smart-watches" will be "smart watches"
@@ -22,11 +23,8 @@ const improveCategoryText = (text: string): string => {
   }
 };
 
-const ShopPage = async ({ params, searchParams }: { params: Promise<{ slug?: string[] }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) => {
-  // Await both params and searchParams
+const ShopPage = async ({ params }: { params: Promise<{ slug?: string[] }> }) => {
   const awaitedParams = await params;
-  const awaitedSearchParams = await searchParams;
-  
   return (
     <div className="text-black bg-white">
       <div className=" max-w-screen-2xl mx-auto px-10 max-sm:px-5">
@@ -44,7 +42,9 @@ const ShopPage = async ({ params, searchParams }: { params: Promise<{ slug?: str
               <SortBy />
             </div>
             <div className="divider"></div>
-            <Products params={awaitedParams} searchParams={awaitedSearchParams} />
+            <Suspense fallback={<Loader />}>
+              <Products />
+            </Suspense>
             <Pagination />
           </div>
         </div>
