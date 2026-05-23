@@ -19,23 +19,21 @@ const BuyNowSingleProductBtn = ({
   quantityCount,
 }: SingleProductBtnProps) => {
   const router = useRouter();
-  const { addToCart, calculateTotals } = useProductStore();
+  const { setBuyNowItems } = useProductStore();
 
-  const handleAddToCart = () => {
-    addToCart({
+  const handleBuyNow = () => {
+    setBuyNowItems([{
       id: product?.id.toString(),
       title: product?.title,
       price: product?.price,
       image: product?.mainImage,
       amount: quantityCount,
-    });
-    calculateTotals();
-    toast.success("Product added to the cart");
+    }]);
     router.push("/checkout");
   };
   return (
     <button
-      onClick={handleAddToCart}
+      onClick={handleBuyNow}
       className="btn w-[200px] text-lg border border-blue-500 hover:border-blue-500 border-1 font-normal bg-blue-500 text-white hover:bg-white hover:scale-110 hover:text-blue-500 transition-all uppercase ease-in max-[500px]:w-full"
     >
       Buy Now

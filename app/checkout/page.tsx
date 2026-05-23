@@ -25,8 +25,12 @@ const CheckoutPage = () => {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { products, total, clearCart } = useProductStore();
+  const { products, total, clearCart, buyNowItems, clearBuyNowItems } = useProductStore();
   const router = useRouter();
+
+  // If the user arrived via "Buy Now", scope checkout to that single item only
+  const checkoutItems = buyNowItems.length > 0 ? buyNowItems : products;
+  const checkoutTotal = checkoutItems.reduce((sum, p) => sum + p.price * p.amount, 0);
 
   // Add validation functions that match server requirements
   const validateForm = () => {
@@ -112,12 +116,12 @@ const CheckoutPage = () => {
       return;
     }
 
-    if (products.length === 0) {
+    if (checkoutItems.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
 
-    if (total <= 0) {
+    if (checkoutTotal <= 0) {
       toast.error("Invalid order total");
       return;
     }
@@ -156,7 +160,7 @@ const CheckoutPage = () => {
         apartment: checkoutForm.apartment.trim(),
         postalCode: checkoutForm.postalCode.trim(),
         status: "pending",
-        total: total,
+        total: checkoutTotal,
         city: checkoutForm.city.trim(),
         country: checkoutForm.country.trim(),
         orderNotice: checkoutForm.orderNotice.trim(),
@@ -224,20 +228,20 @@ const CheckoutPage = () => {
       console.log("✅ Order ID validation passed, proceeding with product addition...");
 
       // Add products to order
-      for (let i = 0; i < products.length; i++) {
-        console.log(`🛍️ Adding product ${i + 1}/${products.length}:`, {
+      for (let i = 0; i < checkoutItems.length; i++) {
+        console.log(`🛍️ Adding product ${i + 1}/${checkoutItems.length}:`, {
           orderId,
-          productId: products[i].id,
-          quantity: products[i].amount
+          productId: checkoutItems[i].id,
+          quantity: checkoutItems[i].amount
         });
-        
-        await addOrderProduct(orderId, products[i].id, products[i].amount);
+
+        await addOrderProduct(orderId, checkoutItems[i].id, checkoutItems[i].amount);
         console.log(`✅ Product ${i + 1} added successfully`);
       }
 
       console.log(" All products added successfully!");
 
-      // Clear form and cart
+      // Clear form and the appropriate scope
       setCheckoutForm({
         name: "",
         lastname: "",
@@ -251,7 +255,11 @@ const CheckoutPage = () => {
         postalCode: "",
         orderNotice: "",
       });
-      clearCart();
+      if (buyNowItems.length > 0) {
+        clearBuyNowItems();
+      } else {
+        clearCart();
+      }
       
       // Refresh notification count if user is logged in
       try {
@@ -333,7 +341,7 @@ const CheckoutPage = () => {
   };
 
   useEffect(() => {
-    if (products.length === 0) {
+    if (checkoutItems.length === 0) {
       toast.error("You don't have items in your cart");
       router.push("/cart");
     }
@@ -363,7 +371,7 @@ const CheckoutPage = () => {
               role="list"
               className="divide-y divide-gray-200 text-sm font-medium text-gray-900"
             >
-              {products.map((product) => (
+              {checkoutItems.map((product) => (
                 <li key={product?.id} className="flex items-start space-x-4 py-6">
                   <Image
                     src={product?.image ? `/${product?.image}` : "/product_placeholder.jpg"}
@@ -386,7 +394,7 @@ const CheckoutPage = () => {
             <dl className="hidden space-y-6 border-t border-gray-200 pt-6 text-sm font-medium text-gray-900 lg:block">
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Subtotal</dt>
-                <dd>${total}</dd>
+                <dd>${checkoutTotal}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Shipping</dt>
@@ -394,12 +402,12 @@ const CheckoutPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Taxes</dt>
-                <dd>${total / 5}</dd>
+                <dd>${checkoutTotal / 5}</dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-6">
                 <dt className="text-base">Total</dt>
                 <dd className="text-base">
-                  ${total === 0 ? 0 : Math.round(total + total / 5 + 5)}
+                  ${checkoutTotal === 0 ? 0 : Math.round(checkoutTotal + checkoutTotal / 5 + 5)}
                 </dd>
               </div>
             </dl>
