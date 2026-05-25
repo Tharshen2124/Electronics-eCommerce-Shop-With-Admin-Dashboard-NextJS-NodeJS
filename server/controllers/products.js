@@ -435,4 +435,10 @@ module.exports = {
   deleteProduct,
   searchProducts,
   getProductById,
+  // Exported for unit testing (filter/sort validation helpers)
+  validateFilterType,
+  validateOperator,
+  validateSortValue,
+  validateAndSanitizeFilterValue,
+  buildSafeFilterObject,
 };

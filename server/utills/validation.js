@@ -11,6 +11,89 @@ class ValidationError extends Error {
   }
 }
 
+// Password validation for user registration and update
+const PASSWORD_BLOCKLIST = [
+  'password123', 'Password1!', '12345678', 'qwerty123', 'admin123',
+  'letmein123', 'welcome123', 'monkey123', 'dragon123', 'master123'
+];
+
+const validatePassword = (password) => {
+  const errors = [];
+
+  if (password === undefined || password === null || typeof password !== 'string') {
+    return { isValid: false, errors: ['Password is required'] };
+  }
+
+  if (password.length === 0) {
+    return { isValid: false, errors: ['Password is required'] };
+  }
+
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+
+  if (password.length > 128) {
+    errors.push('Password must be no more than 128 characters long');
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one digit');
+  }
+
+  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
+    errors.push('Password must contain at least one special character');
+  }
+
+  if (PASSWORD_BLOCKLIST.includes(password)) {
+    errors.push('Password is too common and not allowed');
+  }
+
+  return { isValid: errors.length === 0, errors };
+};
+
+// Order status transition validation
+const VALID_TRANSITIONS = {
+  pending: ['processing', 'cancelled'],
+  processing: ['shipped', 'cancelled'],
+  shipped: ['delivered', 'cancelled'],
+  delivered: [],      // terminal state — no further transitions
+  cancelled: [],      // terminal state — no further transitions
+};
+
+const validateStatusTransition = (currentStatus, newStatus) => {
+  if (!currentStatus || typeof currentStatus !== 'string') {
+    return { valid: false, message: 'Current status is required' };
+  }
+  if (!newStatus || typeof newStatus !== 'string') {
+    return { valid: false, message: 'New status is required' };
+  }
+
+  const current = currentStatus.toLowerCase();
+  const next = newStatus.toLowerCase();
+
+  if (!VALID_TRANSITIONS[current]) {
+    return { valid: false, message: `Unknown current status: ${current}` };
+  }
+
+  if (!VALID_TRANSITIONS.hasOwnProperty(next)) {
+    return { valid: false, message: `Unknown target status: ${next}` };
+  }
+
+  if (current === next) {
+    return { valid: true, message: 'Status unchanged' };
+  }
+
+  if (VALID_TRANSITIONS[current].includes(next)) {
+    return { valid: true, message: `Transition from ${current} to ${next} is allowed` };
+  }
+
+  return { valid: false, message: `Transition from ${current} to ${next} is not allowed` };
+};
+
 // Payment validation utilities
 const paymentValidation = {
   // Validate credit card number using Luhn algorithm
@@ -436,6 +519,10 @@ const validatePaymentData = (paymentData) => {
 
 module.exports = {
   ValidationError,
+  validatePassword,
+  validateStatusTransition,
+  PASSWORD_BLOCKLIST,
+  VALID_TRANSITIONS,
   paymentValidation,
   orderValidation,
   validateOrderData,
