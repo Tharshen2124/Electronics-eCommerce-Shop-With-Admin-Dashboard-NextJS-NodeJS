@@ -73,3 +73,4 @@ node_modules/
 
 /coverage/*
 /server/coverage/*
+/.claude
