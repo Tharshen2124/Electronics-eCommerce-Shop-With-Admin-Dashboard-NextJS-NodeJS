@@ -131,4 +131,8 @@ test.describe('Register Flow', () => {
 
     await expect(page.getByText(/Please accept our terms and privacy policy/i)).toBeVisible({ timeout: 5000 });
   })
+
+  test.afterEach(async ({ context }) => {
+    await context.clearCookies();
+  })
 });
