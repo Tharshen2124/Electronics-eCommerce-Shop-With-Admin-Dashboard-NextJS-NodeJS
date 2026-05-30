@@ -5,14 +5,16 @@
  * and registration workflows (UC).
  *
  * Source files under test:
- *   - utills/validation.js  → validatePassword
- *   - controllers/users.js  → createUser handler
+ *   - controllers/users.js  → createUser handler (password length, email format)
+ *
+ * NOTE: The system currently only validates password length >= 8.
+ * Tests for uppercase, digit, special character, and blocklist requirements
+ * are written to EXPECTED spec behavior — they will FAIL, indicating the
+ * system does not implement these validation rules (bugs/gaps found).
  */
 
-const { validatePassword } = require('../utills/validation');
-
 // ---------------------------------------------------------------------------
-// Mock Prisma (required because controllers/users.js imports ../utills/db)
+// Mock Prisma & bcrypt
 // ---------------------------------------------------------------------------
 jest.mock('../utills/db', () => ({
   user: {
@@ -35,7 +37,7 @@ const bcrypt = require('bcryptjs');
 const { createUser } = require('../controllers/users');
 
 // ---------------------------------------------------------------------------
-// Helpers — mock Express req / res
+// Helpers
 // ---------------------------------------------------------------------------
 const mockReq = (body = {}, params = {}) => ({
   body,
@@ -50,8 +52,6 @@ const mockRes = () => {
   res.send = jest.fn().mockReturnValue(res);
   return res;
 };
-
-// Flush all pending microtasks/promises so asyncHandler-wrapped handlers complete
 const flushPromises = () => new Promise((resolve) => setImmediate(resolve));
 
 // ---------------------------------------------------------------------------
@@ -67,73 +67,103 @@ describe('F001 - User Authentication & Session Management', () => {
   // =========================================================================
   describe('Equivalence Partitioning - Password Validation', () => {
     // TC-01-EP-001: Password length too short (0 <= Length < 8)
-    test('rejects password "Aa1!bcd" (7 chars) as too short', () => {
-      const result = validatePassword('Aa1!bcd');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('at least 8 characters'),
-        ])
+    test('rejects password "Aa1!bcd" (7 chars) as too short', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'Aa1!bcd' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.stringContaining('8 characters'),
+        })
       );
     });
 
     // TC-01-EP-002: Password length within valid range (8 <= Length <= 128)
-    test('accepts password "ValidPassw0rd!" (14 chars)', () => {
-      const result = validatePassword('ValidPassw0rd!');
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+    test('accepts password "ValidPassw0rd!" (14 chars)', async () => {
+      prisma.user.create.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@test.com',
+        password: '$2a$14$hash',
+        role: 'user',
+      });
+
+      const req = mockReq({ email: 'test@test.com', password: 'ValidPassw0rd!' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(201);
     });
 
     // TC-01-EP-003: Password length too long (Length > 128)
-    test('rejects 129-character password as too long', () => {
+    // EXPECTED TO FAIL: System does not enforce max password length
+    test('rejects 129-character password as too long', async () => {
       const longPassword = 'A1!' + 'a'.repeat(126); // 129 chars
-      const result = validatePassword(longPassword);
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('no more than 128 characters'),
-        ])
-      );
+      const req = mockReq({ email: 'test@test.com', password: longPassword });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, password > 128 chars should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     // TC-01-EP-004: Password fails uppercase requirement
-    test('rejects password "alllower1!" without uppercase', () => {
-      const result = validatePassword('alllower1!');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('uppercase letter'),
-        ])
-      );
+    // EXPECTED TO FAIL: System does not validate uppercase requirement
+    test('rejects password "alllower1!" without uppercase', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'alllower1!' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, password without uppercase should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     // TC-01-EP-005: Password fails digit requirement
-    test('rejects password "NoDigitsHere!" without digit', () => {
-      const result = validatePassword('NoDigitsHere!');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([expect.stringContaining('digit')])
-      );
+    // EXPECTED TO FAIL: System does not validate digit requirement
+    test('rejects password "NoDigitsHere!" without digit', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'NoDigitsHere!' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, password without digit should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     // TC-01-EP-006: Password fails special character requirement
-    test('rejects password "NoSpecialChar123" without special char', () => {
-      const result = validatePassword('NoSpecialChar123');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('special character'),
-        ])
-      );
+    // EXPECTED TO FAIL: System does not validate special character requirement
+    test('rejects password "NoSpecialChar123" without special char', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'NoSpecialChar123' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, password without special character should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     // TC-01-EP-007: Password is in blocklist
-    test('rejects blocklisted password "password123"', () => {
-      const result = validatePassword('password123');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([expect.stringContaining('too common')])
-      );
+    // EXPECTED TO FAIL: System does not check password blocklist
+    test('rejects blocklisted password "password123"', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'password123' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, common/blocklisted passwords should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 
@@ -142,50 +172,81 @@ describe('F001 - User Authentication & Session Management', () => {
   // =========================================================================
   describe('Boundary Value Analysis - Password Length', () => {
     // TC-01-BVA-001: Password lower invalid boundary (Length = 0)
-    test('rejects empty password string', () => {
-      const result = validatePassword('');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([expect.stringContaining('required')])
-      );
+    test('rejects empty password string', async () => {
+      const req = mockReq({ email: 'test@test.com', password: '' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(400);
     });
 
     // TC-01-BVA-002: Password edge invalid boundary (Length = 7)
-    test('rejects 7-character password "Aa1!bcd"', () => {
-      const result = validatePassword('Aa1!bcd');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('at least 8 characters'),
-        ])
+    test('rejects 7-character password "Aa1!bcd"', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'Aa1!bcd' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.stringContaining('8 characters'),
+        })
       );
     });
 
     // TC-01-BVA-003: Password edge valid boundary (Length = 8)
-    test('accepts 8-character password "Aa1!bcde"', () => {
-      const result = validatePassword('Aa1!bcde');
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+    test('accepts 8-character password "Aa1!bcde"', async () => {
+      prisma.user.create.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@test.com',
+        password: '$2a$14$hash',
+        role: 'user',
+      });
+
+      const req = mockReq({ email: 'test@test.com', password: 'Aa1!bcde' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(201);
     });
 
     // TC-01-BVA-004: Password upper valid boundary (Length = 128)
-    test('accepts 128-character valid password', () => {
+    test('accepts 128-character valid password', async () => {
+      prisma.user.create.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@test.com',
+        password: '$2a$14$hash',
+        role: 'user',
+      });
+
       const pwd128 = 'A1!' + 'a'.repeat(125); // 128 chars total
-      const result = validatePassword(pwd128);
-      expect(result.isValid).toBe(true);
-      expect(result.errors).toHaveLength(0);
+      const req = mockReq({ email: 'test@test.com', password: pwd128 });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(201);
     });
 
     // TC-01-BVA-005: Password upper invalid boundary (Length = 129)
-    test('rejects 129-character password', () => {
+    // EXPECTED TO FAIL: System does not enforce max password length
+    test('rejects 129-character password', async () => {
       const pwd129 = 'A1!' + 'a'.repeat(126); // 129 chars total
-      const result = validatePassword(pwd129);
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual(
-        expect.arrayContaining([
-          expect.stringContaining('no more than 128 characters'),
-        ])
-      );
+      const req = mockReq({ email: 'test@test.com', password: pwd129 });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      // Per spec, password > 128 chars should be rejected
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 
@@ -204,9 +265,7 @@ describe('F001 - User Authentication & Session Management', () => {
       prisma.user.findUnique.mockResolvedValue(storedUser);
       bcrypt.compare.mockResolvedValue(true);
 
-      const user = await prisma.user.findUnique({
-        where: { email: 'john@test.com' },
-      });
+      const user = await prisma.user.findUnique({ where: { email: 'john@test.com' } });
       const passwordMatch = await bcrypt.compare('ValidPass1!', user.password);
 
       expect(user).not.toBeNull();
@@ -224,9 +283,7 @@ describe('F001 - User Authentication & Session Management', () => {
       prisma.user.findUnique.mockResolvedValue(storedUser);
       bcrypt.compare.mockResolvedValue(false);
 
-      const user = await prisma.user.findUnique({
-        where: { email: 'john@test.com' },
-      });
+      const user = await prisma.user.findUnique({ where: { email: 'john@test.com' } });
       const passwordMatch = await bcrypt.compare('WrongPass!', user.password);
 
       expect(user).not.toBeNull();
@@ -237,9 +294,7 @@ describe('F001 - User Authentication & Session Management', () => {
     test('displays error for unregistered email', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
 
-      const user = await prisma.user.findUnique({
-        where: { email: 'nobody@test.com' },
-      });
+      const user = await prisma.user.findUnique({ where: { email: 'nobody@test.com' } });
 
       expect(user).toBeNull();
     });
@@ -251,18 +306,14 @@ describe('F001 - User Authentication & Session Management', () => {
   describe('Use Case - Registration Validation', () => {
     // TC-01-UC-001: Main Flow – Register and login successfully
     test('registers user with Name="John", Email="john.doe@test.com", Password="ValidPass1!"', async () => {
-      const createdUser = {
+      prisma.user.create.mockResolvedValue({
         id: 'user-new',
         email: 'john.doe@test.com',
         password: '$2a$14$mockedhash',
         role: 'user',
-      };
-      prisma.user.create.mockResolvedValue(createdUser);
-
-      const req = mockReq({
-        email: 'john.doe@test.com',
-        password: 'ValidPass1!',
       });
+
+      const req = mockReq({ email: 'john.doe@test.com', password: 'ValidPass1!' });
       const res = mockRes();
 
       createUser(req, res, jest.fn());
@@ -284,31 +335,36 @@ describe('F001 - User Authentication & Session Management', () => {
       prismaError.meta = { target: ['email'] };
       prisma.user.create.mockRejectedValue(prismaError);
 
-      const req = mockReq({
-        email: 'admin@gmail.com',
-        password: 'ValidPass1!',
-      });
+      const req = mockReq({ email: 'admin@gmail.com', password: 'ValidPass1!' });
       const res = mockRes();
 
       createUser(req, res, jest.fn());
       await flushPromises();
 
-      // asyncHandler catches the Prisma error and calls handleServerError
-      // which sends a 409 for P2002
       expect(res.status).toHaveBeenCalledWith(409);
     });
 
     // TC-01-UC-003: Alternate Flow 2 – Password does not meet requirements
-    test('rejects registration with short password "short"', () => {
-      const result = validatePassword('short');
-      expect(result.isValid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
+    test('rejects registration with short password "short"', async () => {
+      const req = mockReq({ email: 'test@test.com', password: 'short' });
+      const res = mockRes();
+
+      createUser(req, res, jest.fn());
+      await flushPromises();
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.stringContaining('8 characters'),
+        })
+      );
     });
 
     // TC-01-UC-004: Alternate Flow 3 – Password and confirm password mismatch
     test('rejects registration when password and confirm password differ', () => {
       const password = 'ValidPass1!';
       const confirmPassword = 'Different1!';
+      // Confirm-password check is a frontend concern; this verifies the logic
       expect(password).not.toBe(confirmPassword);
     });
 
@@ -330,10 +386,7 @@ describe('F001 - User Authentication & Session Management', () => {
 
     // TC-01-UC-006: Alternate Flow 5 – Invalid email format on registration
     test('rejects registration with email "johndoetest.com" (missing @)', async () => {
-      const req = mockReq({
-        email: 'johndoetest.com',
-        password: 'ValidPass1!',
-      });
+      const req = mockReq({ email: 'johndoetest.com', password: 'ValidPass1!' });
       const res = mockRes();
 
       createUser(req, res, jest.fn());
@@ -349,10 +402,9 @@ describe('F001 - User Authentication & Session Management', () => {
 
     // TC-01-UC-007: Alternate Flow 6 – Terms and privacy policy not accepted
     test('rejects registration when terms are not accepted', () => {
+      // Terms acceptance is enforced on the frontend before submission.
+      // This verifies the boolean check logic.
       const termsAccepted = false;
-      expect(termsAccepted).toBe(false);
-      // In the application flow, the frontend blocks submission when terms=false.
-      // This unit test verifies the boolean check logic.
       const canRegister = termsAccepted === true;
       expect(canRegister).toBe(false);
     });

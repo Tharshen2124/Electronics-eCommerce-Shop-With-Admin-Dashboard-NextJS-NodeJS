@@ -31,7 +31,6 @@ jest.mock('bcryptjs', () => ({
 const prisma = require('../utills/db');
 const bcrypt = require('bcryptjs');
 const { createUser, updateUser } = require('../controllers/users');
-const { validatePassword } = require('../utills/validation');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -287,10 +286,6 @@ describe('F006 - Admin User Management', () => {
           error: expect.stringContaining('8 characters'),
         })
       );
-
-      // Also verify via validatePassword
-      const pwResult = validatePassword('123');
-      expect(pwResult.isValid).toBe(false);
     });
   });
 

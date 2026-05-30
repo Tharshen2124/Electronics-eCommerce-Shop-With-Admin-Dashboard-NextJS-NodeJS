@@ -187,49 +187,62 @@ const getAllProducts = asyncHandler(async (request, response) => {
         sortObj = {};
     }
 
-    const PAGE_SIZE = 6;
     let products;
-    let total;
 
     if (Object.keys(filterObj).length === 0) {
-      [products, total] = await Promise.all([
-        prisma.product.findMany({
-          skip: (validatedPage - 1) * PAGE_SIZE,
-          take: PAGE_SIZE,
-          include: { category: { select: { name: true } } },
-          orderBy: sortObj,
-        }),
-        prisma.product.count(),
-      ]);
-    } else if (filterObj.category && filterObj.category.equals) {
-      const categoryWhere = {
-        ...whereClause,
-        category: { name: { equals: filterObj.category.equals } },
-      };
-      [products, total] = await Promise.all([
-        prisma.product.findMany({
-          skip: (validatedPage - 1) * PAGE_SIZE,
-          take: PAGE_SIZE,
-          include: { category: { select: { name: true } } },
-          where: categoryWhere,
-          orderBy: sortObj,
-        }),
-        prisma.product.count({ where: categoryWhere }),
-      ]);
+      products = await prisma.product.findMany({
+        skip: (validatedPage - 1) * 10,
+        take: 12,
+        include: {
+          category: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        orderBy: sortObj,
+      });
     } else {
-      [products, total] = await Promise.all([
-        prisma.product.findMany({
-          skip: (validatedPage - 1) * PAGE_SIZE,
-          take: PAGE_SIZE,
-          include: { category: { select: { name: true } } },
+      // Security: Handle category filter with proper validation
+      if (filterObj.category && filterObj.category.equals) {
+        products = await prisma.product.findMany({
+          skip: (validatedPage - 1) * 10,
+          take: 12,
+          include: {
+            category: {
+              select: {
+                name: true,
+              },
+            },
+          },
+          where: {
+            ...whereClause,
+            category: {
+              name: {
+                equals: filterObj.category.equals,
+              },
+            },
+          },
+          orderBy: sortObj,
+        });
+      } else {
+        products = await prisma.product.findMany({
+          skip: (validatedPage - 1) * 10,
+          take: 12,
+          include: {
+            category: {
+              select: {
+                name: true,
+              },
+            },
+          },
           where: whereClause,
           orderBy: sortObj,
-        }),
-        prisma.product.count({ where: whereClause }),
-      ]);
+        });
+      }
     }
 
-    return response.json({ products, total, pageSize: PAGE_SIZE });
+    return response.json(products);
   }
 });
 
@@ -435,10 +448,4 @@ module.exports = {
   deleteProduct,
   searchProducts,
   getProductById,
-  // Exported for unit testing (filter/sort validation helpers)
-  validateFilterType,
-  validateOperator,
-  validateSortValue,
-  validateAndSanitizeFilterValue,
-  buildSafeFilterObject,
 };
