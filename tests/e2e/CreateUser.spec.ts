@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Create User", () => {   
 
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page, context }) => {
+        await context.clearCookies();
         await page.goto("http://localhost:3000/login");
         await page.getByLabel('Email address', { exact: true }).fill("admin@gmail.com");
         await page.getByLabel('Password', { exact: true }).fill("Admin12345!");
@@ -108,6 +109,10 @@ test.describe("Create User", () => {
         await page.getByRole('button', { name: 'Create user' }).click();
         
         await expect(page.getByText(/Password must be longer than 7 characters/i)).toBeVisible({ timeout: 10000 });
+    })
+
+    test.afterEach(async ({ context }) => {
+        await context.clearCookies();
     })
 
 });
