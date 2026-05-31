@@ -9,7 +9,7 @@
 - [x] Bug-C04   - Incorrect Empty State Display During Data Fetching
 - [x] Bug-C05   - Media Upload Handling and Validation Defect
 - [x] Bug-C06   - Incorrect Checkout Scope Handling in Cart Module
-- [ ] Bug-P01   - (Search performance efficiency)
+- [x] Bug-P01   - (Search performance efficiency)
 - [ ] Bug-P02   - (Form Validation Latency)
 - [x] Bug-PR01  - (Unit Test) 
 - [x] Bug-A01   - (Lack of Cloud Native Containerisation)
@@ -718,3 +718,50 @@ docker compose exec backend node utills/insertDemoData.js
 - `docker-compose.yml` *(created)*
 - `.dockerignore` *(created)*
 - `server/.dockerignore` *(created)*
+
+---
+
+## BUG-P01: Search Performance Inefficiency & UX Feedback Delay
+
+| Field | Detail |
+|---|---|
+| **Bug ID** | BUG-P01 |
+| **Severity** | High |
+| **Module** | Search / UI State Management |
+| **Status** | Fixed |
+
+### Context
+
+The search functionality had two significant issues. First, the backend search query experienced massive latency on cold starts (taking ~2,900ms), which caused the application to feel sluggish. Second, when a user submitted a search via the `SearchInput` component, the Next.js router initiated a soft navigation but provided zero visual feedback (like a loading spinner), making the UI appear completely frozen while waiting for the slow backend response.
+
+### Root Cause
+
+**Backend latency:** The initial proposal suspected missing database indexing on fields like `title`, `categoryId`, and `merchantId`. However, the search endpoint uses Prisma's `contains` filter (which translates to `LIKE '%query%'` in SQL). Standard B-Tree indexes cannot optimize queries with leading wildcards. The true cause of the ~2,900ms cold start latency was located in `server/controllers/search.js`. The controller was erroneously instantiating a completely new `PrismaClient` object (`const prisma = new PrismaClient()`) instead of utilizing the shared database singleton. This forced the server to pay a heavy authentication and connection-pool initialization penalty on the very first search request.
+
+**Frontend UX gap:** The `SearchInput` component utilized `router.push('/search?search=...')` to trigger a soft navigation. Because the `/search` page is an async Server Component and lacked a dedicated `loading.tsx` boundary, Next.js blocked the UI transition until the server finished rendering the new page, leaving the user without any visual feedback.
+
+### Solution
+
+**`server/controllers/search.js`** — Removed the local instantiation of `new PrismaClient()` and imported the global database singleton from `server/utills/db.js`. This prevents database connection leaks and allows the search queries to seamlessly reuse the active connection pool, completely eliminating the cold start delay.
+
+```javascript
+// Removed: const { PrismaClient } = require('@prisma/client');
+// Removed: const prisma = new PrismaClient();
+const prisma = require('../utills/db');
+```
+
+**`app/search/loading.tsx`** *(new)* — Created a dedicated `loading.tsx` file for the search route segment that renders the existing `<Loader />` component. Next.js automatically detects this file and wraps the route in a `<Suspense>` boundary. Now, when a user submits a search, the spinner instantly appears, providing immediate visual feedback that persists until the API response is fully received.
+
+```tsx
+import { Loader } from "@/components/Loader";
+import React from "react";
+
+export default function Loading() {
+  return <Loader />;
+}
+```
+
+### Files Affected
+
+- `server/controllers/search.js` *(modified)*
+- `app/search/loading.tsx` *(created)*
