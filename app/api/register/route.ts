@@ -36,7 +36,7 @@ export const POST = async (request: Request) => {
       throw new AppError("Email is already in use", 400);
     }
 
-    const hashedPassword = await bcrypt.hash(password, 14);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user with proper error handling
     const newUser = await prisma.user.create({
