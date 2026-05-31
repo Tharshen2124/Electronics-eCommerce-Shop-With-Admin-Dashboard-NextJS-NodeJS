@@ -512,6 +512,91 @@ if (buyNowItems.length > 0) {
 
 ---
 
+## BUG-PR01: Absence of Automated Testing Framework
+
+| Field | Detail |
+|---|---|
+| **Bug ID** | BUG-PR01 |
+| **Severity** | High |
+| **Module** | Server / Testing |
+| **Status** | Fixed |
+
+### Context
+
+The backend had 16 test files in `/server/tests/` and 2 files in `/server/tests/unit/`, but none of them used a test framework. They were standalone Node.js scripts executed manually via `node <file>.js`, relying on custom `assert()` helpers and `console.log` for pass/fail reporting. A developer had to run each file individually, read the terminal output, and visually confirm whether the test passed. There was no structured reporting, no aggregated results, and no way to integrate these scripts into an automated pipeline.
+
+### Root Cause
+
+The project had no standardised testing convention. Each test file was written as a self-contained script that directly called the API via `fetch`, directly queried the database via the Prisma client, and performed file system operations — all requiring a live running server and a populated database to execute. The files used a hand-rolled `assert()` function that threw on failure and printed to the console on success, making them impossible to discover or run through a test runner like Jest.
+
+For example, `bulk-upload-smoketest.js` defined its own `assert`, `section`, and `logStep` helpers, ran Prisma migrations inline, performed health checks against a live server, and executed a full CRUD lifecycle against real API endpoints — all within a single `async function run()` invoked at the bottom of the file.
+
+The two files in `/server/tests/unit/` (`address-validation.test.js` and `create-category.test.js`) were already written in Jest format with proper `describe`/`it` blocks, but the remaining 16 files in the root of `/server/tests/` were not.
+
+### Solution
+
+All 16 standalone test scripts were converted to Jest test files and placed under `/server/tests/jest/`, with the 2 existing unit test files placed under `/server/tests/jest/unit/`. The Jest configuration file was updated to include the new test directory.
+
+The conversion followed these principles:
+
+**Test structure** — Each script's logic was decomposed into `describe`/`it` blocks. Functions that were tested sequentially in a single `run()` function were broken out into individual `it()` cases, each targeting a single assertion. For instance, `bulk-upload-smoketest.js` — which tested CSV upload, batch listing, batch detail retrieval, item updates, and batch deletion in one linear flow — was split into dedicated test cases for each operation.
+
+**Mocking HTTP calls** — All `fetch()` calls to `API_BASE_URL` were replaced with `jest.fn()` mocks. The converted tests do not require a running server. Expected responses are defined inline within each test case, and assertions validate the request parameters and response handling logic.
+
+**Mocking Prisma** — Direct database calls (e.g., `prisma.category.create`, `prisma.product.findUnique`, `prisma.bulk_upload_batch.findUnique`) were mocked using `jest.mock()` against the Prisma client module. This isolates the tests from the database entirely.
+
+**Mocking the file system** — File operations such as `fs.writeFileSync` and `fs.createReadStream` used in CSV upload tests were mocked via `jest.mock('fs')` to avoid creating temporary files during test execution.
+
+**Lifecycle hooks** — `beforeEach` and `afterEach` were used to reset mocks between test cases. `beforeAll` and `afterAll` were used where shared setup or teardown was needed, such as defining common mock return values.
+
+**Naming convention** — Each output file follows the `<original-name>.test.js` pattern (e.g., `bulk-upload-smoketest.js` → `bulk-upload-smoketest.test.js`).
+
+**Import paths** — All `require()` paths were adjusted relative to the new `/server/tests/jest/` location (e.g., `../../utills/db` for the Prisma client, `../../controllers/` for controller modules).
+
+The existing Jest style from the unit tests was used as the reference convention:
+
+```js
+describe("orderValidation.validateEmail", () => {
+  it("accepts a valid email and normalizes casing and whitespace", () => {
+    expect(orderValidation.validateEmail("  USER@Example.com  ")).toBe(
+      "user@example.com"
+    );
+  });
+});
+```
+
+### Files Affected
+
+**Converted (16 files created under `server/tests/jest/`):**
+
+- `bulk-upload-smoketest.test.js`
+- `check-bulk-results.test.js`
+- `check-bulk-upload.test.js`
+- `check-products-db.test.js`
+- `create-category.test.js`
+- `curl-test-command.test.js`
+- `db-check.test.js`
+- `debug-bulk-upload.test.js`
+- `repro-bulk.test.js`
+- `simple-server-test.test.js`
+- `test-bulk-upload-endpoint.test.js`
+- `test-create-product.test.js`
+- `test-create-verify.test.js`
+- `test-db-bulk.test.js`
+- `test-delete-batch.test.js`
+- `test-upload-direct.test.js`
+
+**Moved (2 files under `server/tests/jest/unit/`):**
+
+- `address-validation.test.js`
+- `create-category.test.js`
+
+**Modified:**
+
+- `jest.config.js` *(updated test path configuration)*
+
+---
+
 ## BUG-A01: Lack of Containerisation
 
 | Field | Detail |
