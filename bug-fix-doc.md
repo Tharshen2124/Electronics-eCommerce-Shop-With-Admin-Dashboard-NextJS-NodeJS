@@ -11,7 +11,7 @@
 - [x] Bug-C06   - Incorrect Checkout Scope Handling in Cart Module
 - [ ] Bug-P01   - (Search performance efficiency)
 - [ ] Bug-P02   - (Form Validation Latency)
-- [ ] Bug-PR01  - (Unit Test) 
+- [x] Bug-PR01  - (Unit Test) 
 - [x] Bug-A01   - (Lack of Cloud Native Containerisation)
 - [ ] Bug-A02   - (Database Infrastructure Scalability Limitation)
 
