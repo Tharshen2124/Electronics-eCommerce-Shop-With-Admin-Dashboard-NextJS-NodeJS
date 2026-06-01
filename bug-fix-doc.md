@@ -13,7 +13,7 @@
 - [x] Bug-P02   - (Form Validation Latency)
 - [x] Bug-PR01  - (Unit Test) 
 - [x] Bug-A01   - (Lack of Cloud Native Containerisation)
-- [ ] Bug-A02   - (Database Infrastructure Scalability Limitation)
+- [x] Bug-A02   - (Database Infrastructure Scalability Limitation)
 
 ---
 
@@ -809,3 +809,66 @@ const hashedPassword = await bcrypt.hash(password, 10);
 
 - `app/checkout/page.tsx` *(modified)*
 - `app/api/register/route.ts` *(modified)*
+
+---
+
+## BUG-A02: Database Infrastructure Scalability Limitation
+
+| Field | Detail |
+|---|---|
+| **Bug ID** | BUG-A02 |
+| **Severity** | High |
+| **Module** | Database / Backend Infrastructure |
+| **Status** | Fixed |
+
+### Context
+
+The application was suffering from significant database scalability limitations that would severely degrade performance under production load. Testing with `EXPLAIN ANALYZE` revealed that nested Prisma queries (e.g., fetching a product alongside its category and merchant data) were causing extremely slow sequential table scans. Furthermore, the backend controllers were creating completely new database connection instances on almost every API request, introducing a huge risk of connection pool exhaustion and application crashes during traffic spikes.
+
+### Root Cause
+
+**Database Indexing Deficit:** The original `schema.prisma` configuration did not explicitly define index directives on foreign key relations. Because Prisma translates nested `include` statements into massive SQL `LEFT JOIN` operations, the lack of foreign key indexes forced the database engine into full table scans on every lookup (scaling linearly, `O(N)`), instead of rapid B-Tree lookups (`O(log N)`). 
+
+**Connection Pool Exhaustion:** Individual route controllers were importing `@prisma/client` and calling `new PrismaClient()` locally. In a Node.js server environment, this bypasses connection pooling best practices. For every HTTP request, a new, heavy database connection was opened, rapidly exhausting the database connection limit and overwhelming server memory.
+
+### Solution
+
+**1. Migration to PostgreSQL & Schema Indexing:** 
+We transitioned the primary database provider from MySQL to PostgreSQL to take advantage of superior query planning and concurrency control. Crucially, we injected strict `@@index` attributes into `prisma/schema.prisma` across all heavy relationship fields. This immediately resolved the sequential scan bottlenecks.
+
+```prisma
+// Example of injected indexes in schema.prisma
+model Product {
+  // ...
+  categoryId String
+  merchantId String?
+  category   Category @relation(fields: [categoryId], references: [id])
+  merchant   Merchant? @relation(fields: [merchantId], references: [id])
+  
+  @@index([categoryId])
+  @@index([merchantId])
+}
+```
+
+**2. Global Singleton Implementation:** 
+We refactored all backend controllers to completely eliminate local `new PrismaClient()` instantiations. Instead, they now import the existing global shared instance from `server/utills/db.js`. This guarantees that the entire application shares a single, efficiently managed connection pool.
+
+```javascript
+// Before
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient(); // ❌ Bad: Spawns new connection per request
+
+// After
+const prisma = require("../utills/db"); // ✅ Good: Reuses global connection pool
+```
+
+### Files Affected
+
+- `prisma/schema.prisma` *(modified)*
+- `server/prisma/schema.prisma` *(modified)*
+- `server/controllers/category.js` *(modified)*
+- `server/controllers/customer_orders.js` *(modified)*
+- `server/controllers/customer_order_product.js` *(modified)*
+- `server/controllers/merchant.js` *(modified)*
+- `server/controllers/notificationController.js` *(modified)*
+- `server/controllers/productImages.js` *(modified)*
