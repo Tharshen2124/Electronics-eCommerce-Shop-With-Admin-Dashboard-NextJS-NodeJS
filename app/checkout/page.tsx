@@ -7,6 +7,21 @@ import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import apiClient from "@/lib/api";
+import { z } from "zod";
+
+const checkoutSchema = z.object({
+  name: z.string().trim().min(2, "Name must be at least 2 characters"),
+  lastname: z.string().trim().min(2, "Lastname must be at least 2 characters"),
+  phone: z.string().trim().refine(val => val.replace(/[^0-9]/g, '').length >= 10, "Phone number must be at least 10 digits"),
+  email: z.string().trim().email("Please enter a valid email address"),
+  company: z.string().trim().min(5, "Company must be at least 5 characters"),
+  adress: z.string().trim().min(5, "Address must be at least 5 characters"),
+  apartment: z.string().trim().min(1, "Apartment is required"),
+  city: z.string().trim().min(5, "City must be at least 5 characters"),
+  country: z.string().trim().min(5, "Country must be at least 5 characters"),
+  postalCode: z.string().trim().min(3, "Postal code must be at least 3 characters"),
+  orderNotice: z.string().optional(),
+});
 
 const CheckoutPage = () => {
   const { data: session } = useSession();
@@ -24,9 +39,29 @@ const CheckoutPage = () => {
     orderNotice: "",
   });
   
+    const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { products, total, clearCart } = useProductStore();
+  const { products, total, clearCart, buyNowItems, clearBuyNowItems } = useProductStore();
   const router = useRouter();
+
+  const handleFieldChange = (field: string, value: string) => {
+    setCheckoutForm(prev => ({ ...prev, [field]: value }));
+    try {
+      const fieldSchema = checkoutSchema.shape[field as keyof typeof checkoutSchema.shape];
+      if (fieldSchema) {
+        fieldSchema.parse(value);
+        setFormErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setFormErrors((prev) => ({ ...prev, [field]: error.errors[0].message }));
+      }
+    }
+  };
+
+  // If the user arrived via "Buy Now", scope checkout to that single item only
+  const checkoutItems = buyNowItems.length > 0 ? buyNowItems : products;
+  const checkoutTotal = checkoutItems.reduce((sum, p) => sum + p.price * p.amount, 0);
 
   // Add validation functions that match server requirements
   const validateForm = () => {
@@ -112,12 +147,12 @@ const CheckoutPage = () => {
       return;
     }
 
-    if (products.length === 0) {
+    if (checkoutItems.length === 0) {
       toast.error("Your cart is empty");
       return;
     }
 
-    if (total <= 0) {
+    if (checkoutTotal <= 0) {
       toast.error("Invalid order total");
       return;
     }
@@ -156,7 +191,7 @@ const CheckoutPage = () => {
         apartment: checkoutForm.apartment.trim(),
         postalCode: checkoutForm.postalCode.trim(),
         status: "pending",
-        total: total,
+        total: checkoutTotal,
         city: checkoutForm.city.trim(),
         country: checkoutForm.country.trim(),
         orderNotice: checkoutForm.orderNotice.trim(),
@@ -224,20 +259,20 @@ const CheckoutPage = () => {
       console.log("✅ Order ID validation passed, proceeding with product addition...");
 
       // Add products to order
-      for (let i = 0; i < products.length; i++) {
-        console.log(`🛍️ Adding product ${i + 1}/${products.length}:`, {
+      for (let i = 0; i < checkoutItems.length; i++) {
+        console.log(`🛍️ Adding product ${i + 1}/${checkoutItems.length}:`, {
           orderId,
-          productId: products[i].id,
-          quantity: products[i].amount
+          productId: checkoutItems[i].id,
+          quantity: checkoutItems[i].amount
         });
-        
-        await addOrderProduct(orderId, products[i].id, products[i].amount);
+
+        await addOrderProduct(orderId, checkoutItems[i].id, checkoutItems[i].amount);
         console.log(`✅ Product ${i + 1} added successfully`);
       }
 
       console.log(" All products added successfully!");
 
-      // Clear form and cart
+      // Clear form and the appropriate scope
       setCheckoutForm({
         name: "",
         lastname: "",
@@ -251,7 +286,11 @@ const CheckoutPage = () => {
         postalCode: "",
         orderNotice: "",
       });
-      clearCart();
+      if (buyNowItems.length > 0) {
+        clearBuyNowItems();
+      } else {
+        clearCart();
+      }
       
       // Refresh notification count if user is logged in
       try {
@@ -333,7 +372,7 @@ const CheckoutPage = () => {
   };
 
   useEffect(() => {
-    if (products.length === 0) {
+    if (checkoutItems.length === 0) {
       toast.error("You don't have items in your cart");
       router.push("/cart");
     }
@@ -363,7 +402,7 @@ const CheckoutPage = () => {
               role="list"
               className="divide-y divide-gray-200 text-sm font-medium text-gray-900"
             >
-              {products.map((product) => (
+              {checkoutItems.map((product) => (
                 <li key={product?.id} className="flex items-start space-x-4 py-6">
                   <Image
                     src={product?.image ? `/${product?.image}` : "/product_placeholder.jpg"}
@@ -386,7 +425,7 @@ const CheckoutPage = () => {
             <dl className="hidden space-y-6 border-t border-gray-200 pt-6 text-sm font-medium text-gray-900 lg:block">
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Subtotal</dt>
-                <dd>${total}</dd>
+                <dd>${checkoutTotal}</dd>
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Shipping</dt>
@@ -394,12 +433,12 @@ const CheckoutPage = () => {
               </div>
               <div className="flex items-center justify-between">
                 <dt className="text-gray-600">Taxes</dt>
-                <dd>${total / 5}</dd>
+                <dd>${checkoutTotal / 5}</dd>
               </div>
               <div className="flex items-center justify-between border-t border-gray-200 pt-6">
                 <dt className="text-base">Total</dt>
                 <dd className="text-base">
-                  ${total === 0 ? 0 : Math.round(total + total / 5 + 5)}
+                  ${checkoutTotal === 0 ? 0 : Math.round(checkoutTotal + checkoutTotal / 5 + 5)}
                 </dd>
               </div>
             </dl>
@@ -427,20 +466,15 @@ const CheckoutPage = () => {
                 <div className="mt-1">
                   <input
                     value={checkoutForm.name}
-                    onChange={(e) =>
-                      setCheckoutForm({
-                        ...checkoutForm,
-                        name: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleFieldChange("name", e.target.value)}
                     type="text"
                     id="name-input"
                     name="name-input"
                     autoComplete="given-name"
                     required
                     disabled={isSubmitting}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
+                    {formErrors.name && <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>}
                 </div>
               </div>
 
@@ -454,20 +488,15 @@ const CheckoutPage = () => {
                 <div className="mt-1">
                   <input
                     value={checkoutForm.lastname}
-                    onChange={(e) =>
-                      setCheckoutForm({
-                        ...checkoutForm,
-                        lastname: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleFieldChange("lastname", e.target.value)}
                     type="text"
                     id="lastname-input"
                     name="lastname-input"
                     autoComplete="family-name"
                     required
                     disabled={isSubmitting}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
+                    {formErrors.lastname && <p className="text-red-500 text-xs mt-1">{formErrors.lastname}</p>}
                 </div>
               </div>
 
@@ -481,20 +510,15 @@ const CheckoutPage = () => {
                 <div className="mt-1">
                   <input
                     value={checkoutForm.phone}
-                    onChange={(e) =>
-                      setCheckoutForm({
-                        ...checkoutForm,
-                        phone: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleFieldChange("phone", e.target.value)}
                     type="tel"
                     id="phone-input"
                     name="phone-input"
                     autoComplete="tel"
                     required
                     disabled={isSubmitting}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
+                    {formErrors.phone && <p className="text-red-500 text-xs mt-1">{formErrors.phone}</p>}
                 </div>
               </div>
 
@@ -508,20 +532,15 @@ const CheckoutPage = () => {
                 <div className="mt-1">
                   <input
                     value={checkoutForm.email}
-                    onChange={(e) =>
-                      setCheckoutForm({
-                        ...checkoutForm,
-                        email: e.target.value,
-                      })
-                    }
+                    onChange={(e) => handleFieldChange("email", e.target.value)}
                     type="email"
                     id="email-address"
                     name="email-address"
                     autoComplete="email"
                     required
                     disabled={isSubmitting}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  />
+                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed" />
+                    {formErrors.email && <p className="text-red-500 text-xs mt-1">{formErrors.email}</p>}
                 </div>
               </div>
             </section>
@@ -573,13 +592,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.company}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          company: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("company", e.target.value)}
                     />
+                    {formErrors.company && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.company}</p>
+                    )}
                   </div>
                 </div>
 
@@ -600,13 +617,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.adress}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          adress: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("adress", e.target.value)}
                     />
+                    {formErrors.adress && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.adress}</p>
+                    )}
                   </div>
                 </div>
 
@@ -626,13 +641,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.apartment}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          apartment: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("apartment", e.target.value)}
                     />
+                    {formErrors.apartment && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.apartment}</p>
+                    )}
                   </div>
                 </div>
 
@@ -653,13 +666,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.city}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          city: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("city", e.target.value)}
                     />
+                    {formErrors.city && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.city}</p>
+                    )}
                   </div>
                 </div>
 
@@ -680,13 +691,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.country}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          country: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("country", e.target.value)}
                     />
+                    {formErrors.country && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.country}</p>
+                    )}
                   </div>
                 </div>
 
@@ -707,13 +716,11 @@ const CheckoutPage = () => {
                       disabled={isSubmitting}
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                       value={checkoutForm.postalCode}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          postalCode: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("postalCode", e.target.value)}
                     />
+                    {formErrors.postalCode && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.postalCode}</p>
+                    )}
                   </div>
                 </div>
 
@@ -732,13 +739,12 @@ const CheckoutPage = () => {
                       autoComplete="order-notice"
                       disabled={isSubmitting}
                       value={checkoutForm.orderNotice}
-                      onChange={(e) =>
-                        setCheckoutForm({
-                          ...checkoutForm,
-                          orderNotice: e.target.value,
-                        })
-                      }
+                      onChange={(e) => handleFieldChange("orderNotice", e.target.value)}
                     ></textarea>
+                    {formErrors.orderNotice && <p className="text-red-500 text-xs mt-1">{formErrors.orderNotice}</p>}
+                    {formErrors.orderNotice && (
+                      <p className="text-red-500 text-xs mt-1">{formErrors.orderNotice}</p>
+                    )}
                   </div>
                 </div>
               </div>
