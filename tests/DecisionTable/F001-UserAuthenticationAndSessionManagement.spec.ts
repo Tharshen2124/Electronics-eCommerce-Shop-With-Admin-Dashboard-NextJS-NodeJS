@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-// Password Boundary Value Analysis
+// Login Verification Decision Table Test
 test.describe('F001 - User Authentication and Session Management', () => {
   
     test('TCOV-01-013 |  Registered Email', async ({ page }) => {

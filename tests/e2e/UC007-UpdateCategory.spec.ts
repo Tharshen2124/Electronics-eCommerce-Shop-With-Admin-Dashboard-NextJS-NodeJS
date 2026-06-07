@@ -9,14 +9,14 @@ test.describe("UC007 - Update Category", () => {
 
         await expect(page.getByText(/Successful login/i)).toBeVisible({ timeout: 10000 });
         
-        // stop test for 10 seconds
-        await page.waitForTimeout(10000);
+        // stop test for 5 seconds to wait for authentication to be processed before navigating to admin page
+        await page.waitForTimeout(5000);
+        
+        await page.goto("http://localhost:3000/admin");
     });
 
     test("Main Flow", async ({ page }) => {
         const extendCategoryName = Math.random().toString(36).substring(2, 7);
-
-        await page.goto("http://localhost:3000/admin");
 
         await page.getByRole('link', { name: 'Categories' }).click();
         await page.getByRole('link', { name: 'details' }).first().click();
@@ -31,9 +31,7 @@ test.describe("UC007 - Update Category", () => {
         await expect(page.getByText(`0 category ${extendCategoryName}`)).toBeVisible({ timeout: 10000 });
     });
 
-    test("Alternate Flow 1 - Empty Category Name", async ({ page }) => {
-        await page.goto("http://localhost:3000/admin");
-        
+    test("Alternate Flow 1 - Empty Category Name", async ({ page }) => {        
         await page.getByRole("link", { name: "Categories" }).click();
         await page.getByRole('link', { name: 'details' }).first().click();
         
@@ -45,7 +43,7 @@ test.describe("UC007 - Update Category", () => {
     });
 
     // test("Alternate Flow 2 - Duplicate Category Name", async ({ page }) => {
-    //     const categoryName = "cameras";
+    //     const categoryName = "laptops";
     
     //     await page.goto("http://localhost:3000/admin");
         
@@ -57,6 +55,5 @@ test.describe("UC007 - Update Category", () => {
     //     await page.getByRole("button", { name: "Update category" }).click();
         
     //     await expect(page.getByText(/duplicate/i)).toBeVisible({ timeout: 10000 });
-
     // })
 });

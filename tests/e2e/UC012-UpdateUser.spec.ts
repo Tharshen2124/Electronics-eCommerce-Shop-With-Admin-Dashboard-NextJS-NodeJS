@@ -27,7 +27,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('textbox', { name: 'Email:' }).click();
         await page.getByRole('textbox', { name: 'Email:' }).fill(`admin${nameExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
                 
         await page.getByRole('button', { name: 'Update user' }).click();
 
@@ -45,7 +45,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('link', { name: 'details' }).nth(1).click();
 
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
         await page.getByLabel('User role: adminuser').selectOption('admin');
         
         await page.getByRole('button', { name: 'Update user' }).click();
@@ -60,7 +60,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('link', { name: 'details' }).nth(1).click();
         
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
         await page.getByLabel('User role: adminuser').selectOption('user');
 
         await page.getByRole('button', { name: 'Update user' }).click();
@@ -73,7 +73,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('link', { name: 'details' }).nth(2).click();
 
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
         await page.getByLabel('User role: adminuser').selectOption('user');
         
         await page.getByRole('button', { name: 'Update user' }).click();
@@ -88,7 +88,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('link', { name: 'details' }).nth(2).click();
         
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
         await page.getByLabel('User role: adminuser').selectOption('admin');
 
         await page.getByRole('button', { name: 'Update user' }).click();
@@ -96,23 +96,21 @@ test.describe("UC012 -Update User", () => {
 
     // should pass
     test("Alternate Flow 3 - update to invalid email", async ({ page }) => {
-        const nameExtended = Math.random().toString(36).substring(2, 7);
-
         await page.getByRole('link', { name: 'User' }).click();
         
         await page.getByRole('link', { name: 'details' }).nth(3).click();
         
         await page.getByRole('textbox', { name: 'Email:' }).click();
-        await page.getByRole('textbox', { name: 'Email:' }).fill(`admin${nameExtended}gmailcom`);
+        await page.getByRole('textbox', { name: 'Email:' }).fill(`invalidemail`);
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
                 
         await page.getByRole('button', { name: 'Update user' }).click();
 
         await expect(page.getByText(/You entered invalid email address format/i)).toBeVisible({ timeout: 10000 });
     })
 
-    // should fail (crashes backend)
+    // expected to fail (crashes backend)
     // test("Alternate Flow 4 - update to a duplicate email", async ({ page }) => {
     //     await page.getByRole('link', { name: 'User' }).click();
         
@@ -121,7 +119,7 @@ test.describe("UC012 -Update User", () => {
     //     await page.getByRole('textbox', { name: 'Email:' }).click();
     //     await page.getByRole('textbox', { name: 'Email:' }).fill(`admin@gmail.com`);
     //     await page.getByRole('textbox', { name: 'New password:' }).click();
-    //     await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+    //     await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
                 
     //     await page.getByRole('button', { name: 'Update user' }).click();
 
@@ -150,7 +148,7 @@ test.describe("UC012 -Update User", () => {
         await page.getByRole('textbox', { name: 'Email:' }).click();
         await page.getByRole('textbox', { name: 'Email:' }).fill('');
         await page.getByRole('textbox', { name: 'New password:' }).click();
-        await page.getByRole('textbox', { name: 'New password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'New password:' }).fill('NewPass123!');
                 
         await page.getByRole('button', { name: 'Update user' }).click();
 

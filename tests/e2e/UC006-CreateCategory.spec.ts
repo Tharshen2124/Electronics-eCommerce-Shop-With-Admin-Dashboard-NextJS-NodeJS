@@ -22,14 +22,14 @@ test.describe("UC006 - Create Category", () => {
         await page.getByRole("link", { name: "Categories" }).click();
         await page.getByRole("button", { name: "Add new category" }).click();
         await page.getByRole("textbox", { name: "Category name:" }).click();
-        await page.getByRole("textbox", { name: "Category name:" }).fill(categoryName);
+        await page.getByRole("textbox", { name: "Category name:" }).fill(`Category ${categoryName}`);
         await page.getByRole("button", { name: "Create category" }).click();
 
         await expect(page.getByText(/Category added successfully/i)).toBeVisible({ timeout: 10000 });
 
         await page.getByRole("link", { name: "Categories" }).click();
 
-        await expect(page.getByText(categoryName)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(`Category ${categoryName}`)).toBeVisible({ timeout: 10000 });
     });
 
     test("Alternate Flow 1 - Empty Category Name", async ({ page }) => {        
@@ -42,7 +42,7 @@ test.describe("UC006 - Create Category", () => {
     });
 
     // test("Alternate Flow 2 - Duplicate Category Name", async ({ page }) => {
-    //     const categoryName = "cameras";
+    //     const categoryName = "laptops";
     
     //     await page.goto("http://localhost:3000/admin");
     //     await page.getByRole("link", { name: "Categories" }).click();

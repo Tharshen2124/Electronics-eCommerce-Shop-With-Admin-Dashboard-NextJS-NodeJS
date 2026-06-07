@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 
-test.describe("UC011 -Create User", () => {   
+test.describe("UC011 - Create User", () => {   
 
     test.beforeEach(async ({ page, context }) => {
         await context.clearCookies();
@@ -27,7 +27,7 @@ test.describe("UC011 -Create User", () => {
         await page.getByRole('textbox', { name: 'Email:' }).click();
         await page.getByRole('textbox', { name: 'Email:' }).fill(`test${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Password:' }).click();
-        await page.getByRole('textbox', { name: 'Password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'Password:' }).fill('SecurePass1!');
         
         await page.getByRole('button', { name: 'Create user' }).click();
         
@@ -43,7 +43,7 @@ test.describe("UC011 -Create User", () => {
         await page.getByRole('textbox', { name: 'Email:' }).click();
         await page.getByRole('textbox', { name: 'Email:' }).fill(`test${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Password:' }).click();
-        await page.getByRole('textbox', { name: 'Password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'Password:' }).fill('SecurePass1!');
         
         await page.getByLabel('User role: adminuser').selectOption('admin');
 
@@ -70,7 +70,7 @@ test.describe("UC011 -Create User", () => {
     //     await page.getByRole('textbox', { name: 'Email:' }).click();
     //     await page.getByRole('textbox', { name: 'Email:' }).fill(`admin@gmail.com`);
     //     await page.getByRole('textbox', { name: 'Password:' }).click();
-    //     await page.getByRole('textbox', { name: 'Password:' }).fill('Admin12345!');
+    //     await page.getByRole('textbox', { name: 'Password:' }).fill('SecurePass1!');
         
     //     await page.getByRole('button', { name: 'Create user' }).click();
 
@@ -86,9 +86,9 @@ test.describe("UC011 -Create User", () => {
         await page.getByRole('button', { name: 'Add new user' }).click();
         
         await page.getByRole('textbox', { name: 'Email:' }).click();
-        await page.getByRole('textbox', { name: 'Email:' }).fill(`test${emailExtended}gmail.com`);
+        await page.getByRole('textbox', { name: 'Email:' }).fill(`invalidemail`);
         await page.getByRole('textbox', { name: 'Password:' }).click();
-        await page.getByRole('textbox', { name: 'Password:' }).fill('Admin12345!');
+        await page.getByRole('textbox', { name: 'Password:' }).fill('SecurePass1!');
         
         await page.getByRole('button', { name: 'Create user' }).click();
         
