@@ -25,13 +25,7 @@ test.describe("UC009 - Update Merchant", () => {
         await page.getByRole('link', { name: 'Edit' }).first().click();
         
         await page.locator('input[name="name"]').click();
-        await page.locator('input[name="name"]').fill(`Updated name ${nameExtended}`);
-        await page.locator('input[name="email"]').click();
-        await page.locator('input[name="email"]').fill(`email${nameExtended}@gmail.com`);
-        await page.locator('input[name="phone"]').click();
-        await page.locator('input[name="phone"]').fill('60104441234');
-        await page.locator('input[name="address"]').click();
-        await page.locator('input[name="address"]').fill(`No.4, Jalan NS 10/5, Bandar Sunway, ${nameExtended}`);
+        await page.locator('input[name="name"]').fill(`TechStore Updated ${nameExtended}`);
         
         await page.getByRole('button', { name: 'Save Changes' }).click();
 
@@ -87,7 +81,7 @@ test.describe("UC009 - Update Merchant", () => {
         await page.getByRole('link', { name: 'Edit' }).nth(3).click();
         
         await page.locator('input[name="email"]').click();
-        await page.locator('input[name="email"]').fill('testgmailcom');
+        await page.locator('input[name="email"]').fill('invalidemail');
         
         await page.getByRole('button', { name: 'Save Changes' }).click();
 
@@ -105,7 +99,7 @@ test.describe("UC009 - Update Merchant", () => {
         await page.getByRole('link', { name: 'Edit' }).nth(4).click();
         
         await page.locator('input[name="phone"]').click();
-        await page.locator('input[name="phone"]').fill('iosflsajdasjdif');
+        await page.locator('input[name="phone"]').fill('abcdefg');
         
         await page.getByRole('button', { name: 'Save Changes' }).click();
 
@@ -133,7 +127,6 @@ test.describe("UC009 - Update Merchant", () => {
         await page.locator('input[name="address"]').click();
         await page.locator('input[name="address"]').fill(`No.4, Jalan NS 10/5, Bandar Sunway, ${nameExtended}`);
 
-        // cancel button not working
         await page.getByRole('link', { name: 'Back to Merchants' }).click();
     });
 

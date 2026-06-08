@@ -392,7 +392,7 @@ test.describe('UC003 - Shopping Cart Management', () => {
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).click();
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).fill('60104456678');
         await page.getByRole('textbox', { name: 'Email address *' }).click();
-        await page.getByRole('textbox', { name: 'Email address *' }).fill(`johndoe${inputExtension}gmailcom`);
+        await page.getByRole('textbox', { name: 'Email address *' }).fill(`invalidemail`);
         await page.getByRole('textbox', { name: 'Company *' }).click();
         await page.getByRole('textbox', { name: 'Company *' }).fill(`Deriv ${inputExtension}`);
         await page.getByRole('textbox', { name: 'Address *', exact: true }).click();
@@ -412,7 +412,7 @@ test.describe('UC003 - Shopping Cart Management', () => {
         await expect(page.getByText(/Please enter a valid email address/i)).toBeVisible({ timeout: 10000 });
     })
 
-    test('Alternate Flow 6 - some fields are empty (company, address, apartment left empty)', async ({ page }) => {
+    test('Alternate Flow 6 - Empty Required Fields at Checkout', async ({ page }) => {
         const inputExtension = Math.random().toString(36).substring(2, 7)
 
         await page.getByRole('link', { name: 'SHOP NOW' }).click();
@@ -426,21 +426,21 @@ test.describe('UC003 - Shopping Cart Management', () => {
         await page.getByRole('button', { name: 'Buy Now' }).click();
 
         await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).click();
-        await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).fill('John');
+        await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).fill('');
         await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).click();
-        await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).fill('Doe');
+        await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).fill('Batista');
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).click();
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).fill('60104456678');
         await page.getByRole('textbox', { name: 'Email address *' }).click();
         await page.getByRole('textbox', { name: 'Email address *' }).fill(`johndoe${inputExtension}@gmail.com`);
         await page.getByRole('textbox', { name: 'Company *' }).click();
-        await page.getByRole('textbox', { name: 'Company *' }).fill('');
+        await page.getByRole('textbox', { name: 'Company *' }).fill('Sime Darby');
         await page.getByRole('textbox', { name: 'Address *', exact: true }).click();
         await page.getByRole('textbox', { name: 'Address *', exact: true }).fill('');
         await page.getByRole('textbox', { name: 'Apartment, suite, etc. * (' }).click();
-        await page.getByRole('textbox', { name: 'Apartment, suite, etc. * (' }).fill('');
+        await page.getByRole('textbox', { name: 'Apartment, suite, etc. * (' }).fill('Amanda Apartment');
         await page.getByRole('textbox', { name: 'City *' }).click();
-        await page.getByRole('textbox', { name: 'City *' }).fill('Selangor');
+        await page.getByRole('textbox', { name: 'City *' }).fill('');
         await page.getByRole('textbox', { name: 'Country *' }).click();
         await page.getByRole('textbox', { name: 'Country *' }).fill('Malaysia');
         await page.getByRole('textbox', { name: 'Postal code *' }).click();
@@ -450,12 +450,12 @@ test.describe('UC003 - Shopping Cart Management', () => {
         
         await page.getByRole('button', { name: 'Place Order' }).click();
 
-        await expect(page.getByText(/Apartment is required/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/Name must be at least 2 characters/i)).toBeVisible({ timeout: 10000 });
         await expect(page.getByText(/Address must be at least 5 characters/i)).toBeVisible({ timeout: 10000 });
-        await expect(page.getByText(/Company must be at least 5 characters/i)).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText(/City must be at least 5 characters/i)).toBeVisible({ timeout: 10000 });
     })
 
-    test('Alternate Flow 7 - sorts products by highest price.', async ({ page }) => {
+    test('Alternate Flow 7 - phone number too short.', async ({ page }) => {
         const inputExtension = Math.random().toString(36).substring(2, 7)
 
         await page.getByRole('link', { name: 'SHOP NOW' }).click();
@@ -510,9 +510,9 @@ test.describe('UC003 - Shopping Cart Management', () => {
         await page.getByRole('button', { name: 'Buy Now' }).click();
 
         await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).click();
-        await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).fill('J');
+        await page.getByRole('textbox', { name: 'Name * (min 2 characters)', exact: true }).fill('A');
         await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).click();
-        await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).fill('D');
+        await page.getByRole('textbox', { name: 'Lastname * (min 2 characters)' }).fill('A');
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).click();
         await page.getByRole('textbox', { name: 'Phone number * (min 10 digits)' }).fill('60104456678');
         await page.getByRole('textbox', { name: 'Email address *' }).click();

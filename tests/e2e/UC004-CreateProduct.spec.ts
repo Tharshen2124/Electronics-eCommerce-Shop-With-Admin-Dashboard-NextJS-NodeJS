@@ -16,7 +16,6 @@ test.describe("UC004 - Create Product", () => {
         await page.goto("http://localhost:3000/admin");
     });
 
-    // expected to pass (NO ISSUE)
     test("Main Flow", async ({ page }) => { 
         const productNameExtended = Math.random().toString(36).substring(2, 7)
 
@@ -33,12 +32,12 @@ test.describe("UC004 - Create Product", () => {
         await page.getByRole('textbox', { name: 'Product slug:' }).fill(`product-${productNameExtended}`);
         await page.getByLabel('Category:').selectOption('fs6412b4-22fd-4fbb-9741-d77512dfdfa3');
         await page.getByRole('textbox', { name: 'Product price:' }).click();
-        await page.getByRole('textbox', { name: 'Product price:' }).fill('10');
+        await page.getByRole('textbox', { name: 'Product price:' }).fill('999.99');
         await page.getByRole('textbox', { name: 'Manufacturer:' }).click();
         await page.getByRole('textbox', { name: 'Manufacturer:' }).fill('Sime Darby');
         await page.locator('input[type="file"]').setInputFiles('tests/fixtures/earbuds_black.jpg');
         await page.getByRole('textbox', { name: 'Product description:' }).click();
-        await page.getByRole('textbox', { name: 'Product description:' }).fill('earbuds in black');
+        await page.getByRole('textbox', { name: 'Product description:' }).fill('A test product');
         
         await page.getByRole('button', { name: 'Add product' }).click();
 
@@ -50,16 +49,16 @@ test.describe("UC004 - Create Product", () => {
     });
 
     // expected to pass (ERROR - cannot find name locator error)
-    test("Alternate Flow 1 - product name, slug and manufacturer fields are empty", async ({ page }) => {   
+    test("Alternate Flow 1 - empty required fields", async ({ page }) => {   
         await page.getByRole('link', { name: 'Products' }).click();
         await page.getByRole('button', { name: 'Add new product' }).click();
 
         await page.getByLabel('Category:').selectOption('fs6412b4-22fd-4fbb-9741-d77512dfdfa3');
-        await page.getByRole('textbox', { name: 'Product price:' }).click();
-        await page.getByRole('textbox', { name: 'Product price:' }).fill('10');
         await page.locator('input[type="file"]').setInputFiles('tests/fixtures/earbuds_black.jpg');
+        await page.getByRole('textbox', { name: 'Manufacturer:' }).click();
+        await page.getByRole('textbox', { name: 'Manufacturer:' }).fill('Sime Darby');
         await page.getByRole('textbox', { name: 'Product description:' }).click();
-        await page.getByRole('textbox', { name: 'Product description:' }).fill('earbuds in black');
+        await page.getByRole('textbox', { name: 'Product description:' }).fill('A test product');
         
         await page.getByRole('button', { name: 'Add product' }).click();
 
@@ -82,13 +81,12 @@ test.describe("UC004 - Create Product", () => {
         await page.getByRole('textbox', { name: 'Product slug:' }).fill(`product-${productNameExtended}`);
         await page.getByLabel('Category:').selectOption('fs6412b4-22fd-4fbb-9741-d77512dfdfa3');
         await page.getByRole('textbox', { name: 'Product price:' }).click();
-        await page.getByRole('textbox', { name: 'Product price:' }).fill('10');
+        await page.getByRole('textbox', { name: 'Product price:' }).fill('999.99');
         await page.getByRole('textbox', { name: 'Manufacturer:' }).click();
         await page.getByRole('textbox', { name: 'Manufacturer:' }).fill('Sime Darby');
-        await page.locator('input[type="file"]').setInputFiles('tests/fixtures/earbuds_black.jpg');
         await page.getByRole('textbox', { name: 'Product description:' }).click();
-        await page.getByRole('textbox', { name: 'Product description:' }).fill('earbuds in black');
-        
+        await page.getByRole('textbox', { name: 'Product description:' }).fill('A test product');
+
         await page.getByRole('button', { name: 'Add product' }).click();
 
         await expect(page.getByText(/Please enter values in input fields/i)).toBeVisible({ timeout: 10000 });
@@ -115,20 +113,20 @@ test.describe("UC004 - Create Product", () => {
     //     await page.getByRole('textbox', { name: 'Product slug:' }).fill(`wireless-earbuds-demo`);
     //     await page.getByLabel('Category:').selectOption('fs6412b4-22fd-4fbb-9741-d77512dfdfa3');
     //     await page.getByRole('textbox', { name: 'Product price:' }).click();
-    //     await page.getByRole('textbox', { name: 'Product price:' }).fill('10');
+    //     await page.getByRole('textbox', { name: 'Product price:' }).fill('999.99');
     //     await page.getByRole('textbox', { name: 'Manufacturer:' }).click();
     //     await page.getByRole('textbox', { name: 'Manufacturer:' }).fill('Sime Darby');
     //     await page.locator('input[type="file"]').setInputFiles('tests/fixtures/earbuds_black.jpg');
     //     await page.getByRole('textbox', { name: 'Product description:' }).click();
-    //     await page.getByRole('textbox', { name: 'Product description:' }).fill('earbuds in black');
+    //     await page.getByRole('textbox', { name: 'Product description:' }).fill('A test product');
         
     //     await page.getByRole('button', { name: 'Add product' }).click();
 
-    //     await expect(page.getByText(/Product added successfully/i)).toBeVisible({ timeout: 10000 });
+    //     await expect(page.getByText(/Duplicate slug not allowed/i)).toBeVisible({ timeout: 10000 });
 
     //     await page.getByRole('link', { name: 'Products' }).click();
         
-    //     await expect(page.getByText(`Product ${productNameExtended}`)).toBeVisible();
+    //     await expect(page.getByText(`Product ${productNameExtended}`)).not.toBeVisible();
     // });
     test.afterEach(async ({ context }) => {
         await context.clearCookies();

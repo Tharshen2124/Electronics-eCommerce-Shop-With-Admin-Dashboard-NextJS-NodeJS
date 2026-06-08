@@ -18,15 +18,17 @@ test.describe("UC008 - Create Merchant", () => {
 
     // expected to fail (NO ISSUE)
     test("Main Flow", async ({ page }) => { 
+        const emailExtended = Math.random().toString(36).substring(2, 7);
+
         await page.getByRole('link', { name: 'Merchant' }).click();
         await page.getByRole('link', { name: 'Add Merchant' }).click();
         
         await page.getByRole('textbox', { name: 'Merchant name' }).click();
-        await page.getByRole('textbox', { name: 'Merchant name' }).fill('john');
+        await page.getByRole('textbox', { name: 'Merchant name' }).fill('TechStore');
         await page.getByRole('textbox', { name: 'email@example.com' }).click();
-        await page.getByRole('textbox', { name: 'email@example.com' }).fill('john@gmail.com');
+        await page.getByRole('textbox', { name: 'email@example.com' }).fill(`tech${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Phone number' }).click();
-        await page.getByRole('textbox', { name: 'Phone number' }).fill('60104441234');
+        await page.getByRole('textbox', { name: 'Phone number' }).fill('0123456789');
         await page.getByRole('textbox', { name: 'Merchant address' }).click();
         await page.getByRole('textbox', { name: 'Merchant address' }).fill('No.4, Jalan NS 10/5, Bandar Sunway');
         await page.getByRole('textbox', { name: 'Enter merchant description' }).click();
@@ -37,13 +39,14 @@ test.describe("UC008 - Create Merchant", () => {
         await expect(page.getByText(/Merchant created successfully/i)).toBeVisible({ timeout: 10000 });
     });
 
-    // expected to pass (ERROR - cannot find name locator error)
-    test("Alternate Flow 1 - name field is empty", async ({ page }) => {   
+    // expected to pass
+    test("Alternate Flow 1 - name field is empty", async ({ page }) => { 
+        const emailExtended = Math.random().toString(36).substring(2, 7);  
         await page.getByRole('link', { name: 'Merchant' }).click();
         await page.getByRole('link', { name: 'Add Merchant' }).click();
         
         await page.getByRole('textbox', { name: 'email@example.com' }).click();
-        await page.getByRole('textbox', { name: 'email@example.com' }).fill('john@gmail.com');
+        await page.getByRole('textbox', { name: 'email@example.com' }).fill(`tech${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Phone number' }).click();
         await page.getByRole('textbox', { name: 'Phone number' }).fill('60104441234');
         await page.getByRole('textbox', { name: 'Merchant address' }).click();
@@ -61,17 +64,17 @@ test.describe("UC008 - Create Merchant", () => {
         expect(nameMessage).toMatch(/fill out/i);    
     });
 
-    // expected to pass (ERROR - cannot find email locator error)
+    // expected to pass
     test("Alternate Flow 2 - invalid email format", async ({ page }) => { 
         await page.getByRole('link', { name: 'Merchant' }).click();
         await page.getByRole('link', { name: 'Add Merchant' }).click();
         
         await page.getByRole('textbox', { name: 'Merchant name' }).click();
-        await page.getByRole('textbox', { name: 'Merchant name' }).fill('john');
+        await page.getByRole('textbox', { name: 'Merchant name' }).fill('TechStore');
         await page.getByRole('textbox', { name: 'email@example.com' }).click();
-        await page.getByRole('textbox', { name: 'email@example.com' }).fill('test');
+        await page.getByRole('textbox', { name: 'email@example.com' }).fill('techstore');
         await page.getByRole('textbox', { name: 'Phone number' }).click();
-        await page.getByRole('textbox', { name: 'Phone number' }).fill('60104441234');
+        await page.getByRole('textbox', { name: 'Phone number' }).fill('0123456789');
         await page.getByRole('textbox', { name: 'Merchant address' }).click();
         await page.getByRole('textbox', { name: 'Merchant address' }).fill('No.4, Jalan NS 10/5, Bandar Sunway');
         await page.getByRole('textbox', { name: 'Enter merchant description' }).click();
@@ -82,23 +85,23 @@ test.describe("UC008 - Create Merchant", () => {
         const emailMessage = await page.locator('input[name="email"]').evaluate(
             (el) => (el as HTMLInputElement).validationMessage
         );
-        // firefox - please enter an email address
-        // chrome - 
         expect(emailMessage).toMatch(/email address/i);    
     });
 
     // expected to fail 
     test("Alternate Flow 3 - invalid phone number", async ({ page }) => {
+        const emailExtended = Math.random().toString(36).substring(2, 7);
+
         await page.getByRole('link', { name: 'Merchant' }).click();
         await page.getByRole('link', { name: 'Add Merchant' }).click();
         
         await page.getByRole('textbox', { name: 'Merchant name' }).click();
-        await page.getByRole('textbox', { name: 'Merchant name' }).fill('john');
+        await page.getByRole('textbox', { name: 'Merchant name' }).fill('TechStore');
         await page.getByRole('textbox', { name: 'email@example.com' }).click();
-        await page.getByRole('textbox', { name: 'email@example.com' }).fill('john@gmail.com');
+        await page.getByRole('textbox', { name: 'email@example.com' }).fill(`tech${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Phone number' }).click();
 
-        await page.getByRole('textbox', { name: 'Phone number' }).fill('iosfjosifjdsaif');
+        await page.getByRole('textbox', { name: 'Phone number' }).fill('abcdefg');
         await page.getByRole('textbox', { name: 'Merchant address' }).click();
         await page.getByRole('textbox', { name: 'Merchant address' }).fill('No.4, Jalan NS 10/5, Bandar Sunway');
         await page.getByRole('textbox', { name: 'Enter merchant description' }).click();
@@ -115,21 +118,21 @@ test.describe("UC008 - Create Merchant", () => {
 
     // expected to pass
     test("Alternate Flow 4 - cancel before submitting", async ({ page }) => {
+        const emailExtended = Math.random().toString(36).substring(2, 7);
         await page.getByRole('link', { name: 'Merchant' }).click();
         await page.getByRole('link', { name: 'Add Merchant' }).click();
         
         await page.getByRole('textbox', { name: 'Merchant name' }).click();
-        await page.getByRole('textbox', { name: 'Merchant name' }).fill('john');
+        await page.getByRole('textbox', { name: 'Merchant name' }).fill('TechStore');
         await page.getByRole('textbox', { name: 'email@example.com' }).click();
-        await page.getByRole('textbox', { name: 'email@example.com' }).fill('john@gmail.com');
+        await page.getByRole('textbox', { name: 'email@example.com' }).fill(`tech${emailExtended}@gmail.com`);
         await page.getByRole('textbox', { name: 'Phone number' }).click();
-        await page.getByRole('textbox', { name: 'Phone number' }).fill('60104441234');
+        await page.getByRole('textbox', { name: 'Phone number' }).fill('0123456789');
         await page.getByRole('textbox', { name: 'Merchant address' }).click();
         await page.getByRole('textbox', { name: 'Merchant address' }).fill('No.4, Jalan NS 10/5, Bandar Sunway');
         await page.getByRole('textbox', { name: 'Enter merchant description' }).click();
         await page.getByRole('textbox', { name: 'Enter merchant description' }).fill('under sunway corp');
 
-        // cancel button not working
         await page.getByRole('link', { name: 'Cancel' }).click();
     })
 

@@ -9,7 +9,6 @@ test.describe('UC002 - Filter and Sort Products', () => {
         await page.getByRole('button', { name: /SIGN IN/i }).click();
 
         await expect(page.getByText(/Successful login/i)).toBeVisible({ timeout: 10000 });
-        
         // stop test for 10 seconds
         await page.waitForTimeout(5000);
     });

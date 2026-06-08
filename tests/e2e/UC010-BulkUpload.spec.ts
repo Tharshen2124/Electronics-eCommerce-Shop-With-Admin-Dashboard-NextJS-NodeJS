@@ -111,7 +111,7 @@ test.describe("UC010 - Bulk Upload", () => {
     });
 
     // should pass
-    test("Alternate Flow 5 - ", async ({ page }) => { 
+    test("Alternate Flow 5 - File exceeds 5 MB", async ({ page }) => { 
         await page.getByRole('link', { name: 'Bulk Upload' }).click();
 
         const downloadPromise = page.waitForEvent('download');
