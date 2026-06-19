@@ -10,8 +10,8 @@ test.describe('F001 - User Authentication and Session Management', () => {
         // expect "invalid credentials"": no
         await page.goto('http://localhost:3000/login', { waitUntil: 'networkidle' });
         
-        await page.getByLabel('Email address', { exact: true }).fill('admin@gmail.com');
-        await page.getByLabel('Password', { exact: true }).fill('Admin12345!');
+        await page.getByLabel('Email address', { exact: true }).fill('irfan@gmail.com');
+        await page.getByLabel('Password', { exact: true }).fill('G0@wayh@ckers');
         await page.getByRole('button', { name: /SIGN IN/i }).click();
 
         // expect redirect to homepage based URL change with timeout of 10 seconds
