@@ -3,10 +3,12 @@ import { test, expect, Page } from '@playwright/test';
 // Shared helper
 async function goToCheckout(page: Page) {
     await page.goto('http://localhost:3000/shop');
-    await page.getByText('View product').first().click();
+    await page.getByText('View product').nth(2).click();
+    await page.waitForURL('**/product/**');
     await page.getByRole('button', { name: /ADD TO CART/i }).click();
     await page.waitForTimeout(500);
-    await page.goto('http://localhost:3000/checkout');
+    await page.goto('http://localhost:3000/cart');
+    await page.getByRole('link', { name: /Checkout/i }).click();
 }
 
 // Function to fill checkout with default valid values except what needs overriding
@@ -14,7 +16,7 @@ async function fillCheckoutForm(page: Page, overrides: Record<string, string>) {
     const defaultData = {
         name: 'John',
         lastname: 'Doe',
-        email: 'irfan@gmail.com',
+        email: `irfan+${Date.now()}@gmail.com`,
         phone: '0123456789',
         company: 'Test Co',
         address: '123 Test Street',
@@ -27,41 +29,21 @@ async function fillCheckoutForm(page: Page, overrides: Record<string, string>) {
     
     const data = { ...defaultData, ...overrides };
 
-    // Best effort mapping based on typical checkout forms
-    // Using generic locators that target input name/id/placeholder
-    const fillField = async (nameObj: { name?: RegExp, id?: string }, value: string) => {
-        if (!value) return; // skip if intentionally empty
-        if (nameObj.name) {
-            // Try by label or placeholder
-            const input = page.getByRole('textbox', { name: nameObj.name }).first();
-            if (await input.isVisible().catch(()=>false)) {
-                await input.fill(value);
-                return;
-            }
-            const byLabel = page.getByLabel(nameObj.name).first();
-            if (await byLabel.isVisible().catch(()=>false)) {
-                await byLabel.fill(value);
-                return;
-            }
-            // fallback to placeholder
-            await page.getByPlaceholder(nameObj.name).first().fill(value).catch(()=>{});
-        }
-    };
-
-    // The checkout page in this template typically uses these placeholders or labels
-    await fillField({name: /Name/i}, data.name);
-    await fillField({name: /Last name/i}, data.lastname);
-    await fillField({name: /Email/i}, data.email);
-    await fillField({name: /Phone/i}, data.phone);
-    await fillField({name: /Company/i}, data.company);
-    await fillField({name: /Address/i}, data.address);
-    await fillField({name: /Apartment/i}, data.apartment);
-    await fillField({name: /City/i}, data.city);
-    await fillField({name: /Country/i}, data.country);
-    await fillField({name: /Postal/i}, data.postalCode);
-    
-    // Order notice is usually a textarea
-    await page.locator('textarea').first().fill(data.orderNotice).catch(()=>{});
+    // Fill fields using their exact IDs from app/checkout/page.tsx
+    if (data.name) await page.locator('#name-input').fill(data.name);
+    if (data.lastname) await page.locator('#lastname-input').fill(data.lastname);
+    if (data.email) await page.locator('#email-address').fill(data.email);
+    if (data.phone) await page.locator('#phone-input').fill(data.phone);
+    if (data.company) await page.locator('#company').fill(data.company);
+    if (data.address) await page.locator('#address').fill(data.address);
+    if (data.apartment) await page.locator('#apartment').fill(data.apartment);
+    if (data.city) await page.locator('#city').fill(data.city);
+    if (data.postalCode) await page.locator('#postal-code').fill(data.postalCode);
+    if (data.country) await page.locator('#region').selectOption({ label: data.country }).catch(async () => {
+        // if it's a standard text input instead of select
+        await page.locator('#region').fill(data.country);
+    });
+    if (data.orderNotice) await page.locator('#order-notice').fill(data.orderNotice);
 }
 
 
@@ -145,7 +127,7 @@ test.describe('F004 - Order Processing & Checkout (Decision Table)', () => {
         await page.getByLabel('Email address').fill('irfan@gmail.com');
         await page.getByLabel('Password').fill('G0@wayh@ckers');
         await page.getByRole('button', { name: /SIGN IN/i }).click();
-        
+        await expect(page).toHaveURL('http://localhost:3000/');
         await goToCheckout(page);
         await fillCheckoutForm(page, { phone: '1234567890' });
         await page.getByRole('button', { name: /Place order/i }).click();
@@ -157,11 +139,11 @@ test.describe('F004 - Order Processing & Checkout (Decision Table)', () => {
         await page.getByLabel('Email address').fill('irfan@gmail.com');
         await page.getByLabel('Password').fill('G0@wayh@ckers');
         await page.getByRole('button', { name: /SIGN IN/i }).click();
-        
+        await expect(page).toHaveURL('http://localhost:3000/');
         await goToCheckout(page);
         await fillCheckoutForm(page, { email: 'invalidemail', phone: '1234567890' });
         await page.getByRole('button', { name: /Place order/i }).click();
-        await expect(page.getByText(/Invalid email|must be a valid email/i)).toBeVisible();
+        await expect(page.getByText(/Please enter a valid email|Invalid email|must be a valid email/i)).toBeVisible();
     });
 
     test('TC-04-DT-003 | TCON-04-010 | TCOV-04-010 | Logged in + missing required fields → display missing fields error', async ({ page }) => {
@@ -169,13 +151,13 @@ test.describe('F004 - Order Processing & Checkout (Decision Table)', () => {
         await page.getByLabel('Email address').fill('irfan@gmail.com');
         await page.getByLabel('Password').fill('G0@wayh@ckers');
         await page.getByRole('button', { name: /SIGN IN/i }).click();
-        
+        await expect(page).toHaveURL('http://localhost:3000/');
         await goToCheckout(page);
         // Leave name, address, city empty. Fill only Email and Phone.
         // We will clear them since fillCheckoutForm doesn't clear if not explicitly handled
-        await page.getByPlaceholder(/Name/i).first().fill('');
-        await page.getByPlaceholder(/Address/i).first().fill('');
-        await page.getByPlaceholder(/City/i).first().fill('');
+        await page.locator('#name-input').fill('');
+        await page.locator('#address').fill('');
+        await page.locator('#city').fill('');
         
         await page.getByRole('button', { name: /Place order/i }).click();
         await expect(page.getByText(/required|must be at least/i).first()).toBeVisible();
@@ -186,9 +168,11 @@ test.describe('F004 - Order Processing & Checkout (Decision Table)', () => {
         
         // Attempt to reach checkout directly or by adding an item
         await page.goto('http://localhost:3000/shop');
-        await page.getByText('View product').first().click();
+        await page.getByText('View product').nth(2).click();
+        await page.waitForURL('**/product/**');
         await page.getByRole('button', { name: /ADD TO CART/i }).click();
-        await page.goto('http://localhost:3000/checkout');
+        await page.goto('http://localhost:3000/cart');
+        await page.getByRole('link', { name: /Checkout/i }).click();
         
         // Should redirect to login
         await expect(page).toHaveURL(/.*\/login/);
