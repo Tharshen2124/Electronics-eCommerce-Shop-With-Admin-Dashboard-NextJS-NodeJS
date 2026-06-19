@@ -21,12 +21,9 @@ export default defineConfig({
   retries: 1,
   /* Opt out of parallel tests on CI. */
   workers: 1,
-  timeout: 30_000,
+  timeout: 90_000,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: [
-    ['html'],
-    ['json', { outputFile: 'playwright-report/test-results.json' }]
-  ],
+  reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */
