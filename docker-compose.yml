@@ -1,16 +1,17 @@
 services:
-  # ─── MySQL ────────────────────────────────────────────────────────────────────
-  mysql:
-    image: mysql:8.0
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: singitronic_nextjs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres1
+      POSTGRES_DB: singitronic_nextjs
     ports:
-      - "3306:3306"
+      - "5432:5432"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -24,7 +25,7 @@ services:
     ports:
       - "3001:3001"
     environment:
-      DATABASE_URL: "mysql://root:rootpassword@mysql:3306/singitronic_nextjs"
+      DATABASE_URL: "postgresql://postgres:postgres1@postgres:5432/singitronic_nextjs?schema=public"
       NODE_ENV: development
       PORT: 3001
       # Needed for CORS allow-list in app.js
@@ -37,7 +38,7 @@ services:
       # which resolves to /app/public inside the container.
       - ./public:/app/public
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/health"]
@@ -54,7 +55,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: "mysql://root:rootpassword@mysql:3306/singitronic_nextjs"
+      DATABASE_URL: "postgresql://postgres:postgres1@postgres:5432/singitronic_nextjs?schema=public"
       # Browser-side API calls reach the backend via the mapped host port.
       NEXT_PUBLIC_API_BASE_URL: "http://localhost:3001"
       # Server-side (SSR) API calls use the Docker service name instead, because
@@ -66,10 +67,10 @@ services:
     volumes:
       - ./public:/app/public
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
       backend:
         condition: service_healthy
 
 volumes:
-  mysql_data:
+  postgres_data:

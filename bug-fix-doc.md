@@ -608,19 +608,21 @@ describe("orderValidation.validateEmail", () => {
 
 ### Context
 
-The application has two separate server processes — a Next.js frontend (port 3000) and a Node.js/Express backend (port 3001) — both depending on a MySQL database. Without containerisation, each contributor must manually install and configure compatible Node.js versions, a local MySQL instance, run two separate terminal processes, and manage their own `.env` files. This creates friction for onboarding and makes the environment inconsistent across machines.
+The application has two separate server processes — a Next.js frontend (port 3000) and a Node.js/Express backend (port 3001) — both depending on a PostgreSQL database. Without containerisation, each contributor must manually install and configure compatible Node.js versions, a local PostgreSQL instance, run two separate terminal processes, and manage their own `.env` files. This creates friction for onboarding and makes the environment inconsistent across machines.
 
 ### Root Cause
 
-There was no Docker configuration in the project. Each service was documented as a manual setup step (see `README.md`), relying on the developer's local environment. Two dependency issues also existed that were invisible locally but would break an isolated container build:
+There was no Docker configuration in the project. Each service was documented as a manual setup step (see `README.md`), relying on the developer's local environment. Several issues also existed that were invisible locally but would break an isolated container build:
 
 - `dotenv` and `express-rate-limit` are used by the backend (`server/app.js` and `server/middleware/rateLimiter.js`) but were absent from `server/package.json`. They happened to resolve locally because Node.js walks up to the root `node_modules`, which contains them as frontend dependencies. An isolated container has no root `node_modules` to fall back to.
 
 - `NEXT_PUBLIC_API_BASE_URL` is used as the backend API base URL for both server-side rendered (SSR) pages and browser-side client components. In a containerised environment, the value that works from the browser (`http://localhost:3001`) cannot reach the backend from inside the Next.js container — it would resolve to the container itself. There was no mechanism to use a different URL per context.
 
+- Both `server/prisma/migrations/migration_lock.toml` and `prisma/migrations/migration_lock.toml` declared `provider = "mysql"`, while both Prisma schemas and all `.env` files were already configured for PostgreSQL. Prisma's `migrate deploy` validates the lock file provider against the schema provider at startup and exits with error `P3019` when they differ. The existing migration SQL files also used MySQL-specific syntax (backtick identifiers, `DATETIME(3)`, inline `ENUM(...)` declarations, `DEFAULT CHARACTER SET utf8mb4`) which is invalid in PostgreSQL.
+
 ### Solution
 
-Five files were created and three existing files were modified.
+Five files were created, six existing files were modified, and two migration SQL files were rewritten.
 
 **`server/package.json`** — Added the two missing runtime dependencies so the backend installs everything it needs within its own isolated context.
 
@@ -668,32 +670,47 @@ EXPOSE 3001
 CMD ["sh", "-c", "npx prisma migrate deploy && node app.js"]
 ```
 
-**`docker-compose.yml`** — Defines three services with explicit dependency ordering and health checks. MySQL must pass its health check before the backend starts; the backend must pass its health check before the frontend starts. Both the frontend and backend bind-mount `./public` to `/app/public` so uploaded images are written to and served from the same host directory without duplication.
+**`docker-compose.yml`** — Defines three services with explicit dependency ordering and health checks. PostgreSQL must pass its health check before the backend starts; the backend must pass its health check before the frontend starts. Both the frontend and backend bind-mount `./public` to `/app/public` so uploaded images are written to and served from the same host directory without duplication.
 
 ```yaml
 services:
-  mysql:
-    image: mysql:8.0
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres1
+      POSTGRES_DB: singitronic_nextjs
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
 
   backend:
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres1@postgres:5432/singitronic_nextjs?schema=public"
     depends_on:
-      mysql:
+      postgres:
         condition: service_healthy
     volumes:
       - ./public:/app/public   # upload target: ../public/ from /app/server = /app/public
 
   frontend:
     environment:
+      DATABASE_URL: "postgresql://postgres:postgres1@postgres:5432/singitronic_nextjs?schema=public"
       NEXT_PUBLIC_API_BASE_URL: "http://localhost:3001"   # browser
       BACKEND_INTERNAL_URL: "http://backend:3001"         # SSR / container-to-container
     depends_on:
+      postgres:
+        condition: service_healthy
       backend:
         condition: service_healthy
     volumes:
       - ./public:/app/public
 ```
+
+**`server/prisma/migrations/migration_lock.toml`** and **`prisma/migrations/migration_lock.toml`** — Changed `provider = "mysql"` to `provider = "postgresql"` in both files so Prisma's provider check passes at `migrate deploy` time.
+
+**`server/prisma/migrations/20260411070805_first_version/migration.sql`** — Rewritten from MySQL to PostgreSQL syntax. Key changes: backtick identifiers replaced with double-quoted identifiers; `VARCHAR(191)` replaced with `TEXT`; `DATETIME(3)` replaced with `TIMESTAMP(3)`; inline `ENUM(...)` column types replaced with `CREATE TYPE ... AS ENUM` declarations; `DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci` clauses removed; named `CONSTRAINT` syntax added to primary keys; index creation extracted into explicit `CREATE INDEX` statements.
+
+**`server/prisma/migrations/20260517071037_new/migration.sql`** — Updated backtick/MySQL `ALTER TABLE` syntax to double-quoted PostgreSQL syntax.
 
 **`.dockerignore`** and **`server/.dockerignore`** — Exclude `node_modules`, build artefacts, and test output from each build context to keep image layers small and prevent host dependencies from leaking into the container.
 
@@ -718,6 +735,10 @@ docker compose exec backend node utills/insertDemoData.js
 - `docker-compose.yml` *(created)*
 - `.dockerignore` *(created)*
 - `server/.dockerignore` *(created)*
+- `server/prisma/migrations/migration_lock.toml` *(modified)*
+- `prisma/migrations/migration_lock.toml` *(modified)*
+- `server/prisma/migrations/20260411070805_first_version/migration.sql` *(rewritten for PostgreSQL)*
+- `server/prisma/migrations/20260517071037_new/migration.sql` *(rewritten for PostgreSQL)*
 
 ---
 
