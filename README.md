@@ -113,20 +113,61 @@ We have applied this method by examining the code after each new added functiona
 
 [https://www.youtube.com/watch?v=Ry0aOMws0gE](https://www.youtube.com/watch?v=Ry0aOMws0gE)
 
-<h2>Instructions</h2>
+<h2>Running with Docker (Recommended)</h2>
+<p>The easiest way to run the application is with Docker. This automatically sets up PostgreSQL, runs all database migrations, and starts both the frontend and backend servers — no manual database installation required.</p>
+
+<h3>Prerequisites</h3>
+<ul>
+  <li><p>Install <a href="https://www.docker.com/products/docker-desktop/" target="_blank">Docker Desktop</a> for your operating system.</p></li>
+</ul>
+
+<h3>Steps</h3>
+<ol>
+  <li><p>Download and extract the project, then open a terminal in the root project folder.</p></li>
+  <li><p>Build and start all services (PostgreSQL, backend, frontend) with a single command:</p></li>
+</ol>
+
+```
+docker compose up --build
+```
+
+<ol start="3">
+  <li><p>On the first run, seed the database with demo data (run this in a separate terminal while the containers are running):</p></li>
+</ol>
+
+```
+docker compose exec backend node utills/insertDemoData.js
+```
+
+<ol start="4">
+  <li><p>Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> and see it live!</p></li>
+</ol>
+
+<p>Docker manages three services automatically:</p>
+<ul>
+  <li><b>postgres</b> — PostgreSQL 16 database on port 5432</li>
+  <li><b>backend</b> — Node.js/Express API server on port 3001 (runs Prisma migrations on startup)</li>
+  <li><b>frontend</b> — Next.js dev server on port 3000</li>
+</ul>
+
+<p>To stop all services, press <code>Ctrl+C</code> and then run <code>docker compose down</code>.</p>
+
+---
+
+<h2>Manual Instructions (without Docker)</h2>
 <ol>
   <li><p>To run the app you first need to download and install Node.js and npm on your computer. Here is a link to the tutorial that explains how to install them: <a href="https://www.youtube.com/watch?v=4FAtFwKVhn0" target="_blank">https://www.youtube.com/watch?v=4FAtFwKVhn0</a>. Also here is the link where you can download them: <a href="https://nodejs.org/en" target="_blank">https://nodejs.org/en</a></p></li>
-  <li><p>When you install Node.js and npm on your computer you need to download and install MySQL on your computer. Here is another link to the tutorial which explains how you can download and install MySQL on your computer: <a target="_blank" href="https://www.youtube.com/watch?v=BxdSUGBs0gM&t=212s">https://www.youtube.com/watch?v=BxdSUGBs0gM&t=212s</a>. Here is a link where you can download MySQL: <a href="https://dev.mysql.com/downloads/installer/" target="_blank">https://dev.mysql.com/downloads/installer/</a></p></li>
-  <li><p>This step is optional, but highly recommended if you don't have a database management app. Because HeidiSQL is beginner-friendly and very easy to use than other database management options. Here is a link to the tutorial which explains how to download and install HeidiSQL: <a href="https://www.youtube.com/watch?v=oJ24MyLeiPs" target="_blank">https://www.youtube.com/watch?v=oJ24MyLeiPs</a> and here is a link where you can download it: <a href="https://www.heidisql.com" target="_blank">https://www.heidisql.com</a></p></li>
+  <li><p>When you install Node.js and npm on your computer you need to download and install PostgreSQL on your computer. Here is a link where you can download PostgreSQL: <a href="https://www.postgresql.org/download/" target="_blank">https://www.postgresql.org/download/</a></p></li>
+  <li><p>This step is optional, but highly recommended if you don't have a database management app. pgAdmin is the most popular PostgreSQL GUI and is bundled with the PostgreSQL installer. Alternatively, <a href="https://tableplus.com" target="_blank">TablePlus</a> is a lightweight, beginner-friendly option available for Mac, Windows and Linux.</p></li>
   <li><p>When you install all the programs you need on your computer you need to download the project. When you download the project, you need to extract it.</p></li>
   <li><p>After you extract the project you need to open the project folder in your code editor and in the root create a file with the name .env.</p></li>
-  <li><p>You need to put the following code in the .env file and instead of username and password put your MySQL username and password:</p></li>
+  <li><p>You need to put the following code in the .env file and replace <code>username</code> and <code>password</code> with your PostgreSQL username and password:</p></li>
 </ol>
 
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:3001
 NODE_ENV=development
-DATABASE_URL="mysql://username:password@localhost:3306/singitronic_nextjs?sslmode=disabled"
+DATABASE_URL="postgresql://username:password@localhost:5432/singitronic_nextjs"
 NEXTAUTH_SECRET=12D16C923BA17672F89B18C1DB22A
 NEXTAUTH_URL=http://localhost:3000
 ```
@@ -135,7 +176,7 @@ NEXTAUTH_URL=http://localhost:3000
 
 ```
 NODE_ENV=development
-DATABASE_URL="mysql://username:password@localhost:3306/singitronic_nextjs?sslmode=disabled"
+DATABASE_URL="postgresql://username:password@localhost:5432/singitronic_nextjs"
 ```
 
 <p>8. Now you need to open your terminal of choice in the root folder of the project and write:</p>
@@ -152,7 +193,7 @@ cd server
 npm install
 ```
 
-<p>10. You will need to run the Prisma migration now. Make sure you are in the server folder and write:</p>
+<p>10. You will need to run the Prisma migration now. Make sure you are in the server folder and that your PostgreSQL server is running, then write:</p>
 
 ```
 npx prisma migrate dev
@@ -179,6 +220,31 @@ npm run dev
 ```
 
 <p>14. Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> and see it live!</p>
+
+---
+
+<h2>Running Tests</h2>
+<p>The backend has a Jest test suite covering validation logic, controller behaviour, and API interactions. All tests use mocked database and HTTP calls — no running server or database is required.</p>
+
+<p>Navigate to the server folder and run the full suite:</p>
+
+```
+cd server
+npm test
+```
+
+<p>Or run Jest directly:</p>
+
+```
+cd server
+npx jest
+```
+
+<p>The test suite is picked up from two locations configured in <code>server/jest.config.js</code>:</p>
+<ul>
+  <li><b>server/tests/unit/</b> — unit tests for validation utilities and individual functions</li>
+  <li><b>server/tests/jest/</b> — mocked API and controller tests (fetch and Prisma calls are mocked via <code>jest.fn()</code>)</li>
+</ul>
 
 
 
