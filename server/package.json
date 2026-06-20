@@ -16,7 +16,8 @@
     "migrate:safe": "node scripts/migration-validator.js safe-migrate",
     "db:backup": "node scripts/backup-database.js",
     "db:restore": "node scripts/restore-database.js",
-    "test:unit": "jest"
+    "test:unit": "jest",
+    "test:bugs": "jest --config jest.report.config.js tests/jest/bug-c01-user-data-model.test.js tests/jest/bug-c02-pagination-logic.test.js tests/jest/bug-c04-search-state.test.js tests/jest/bug-c06-checkout-logic.test.js --verbose"
   },
   "keywords": [],
   "author": "",
@@ -26,11 +27,11 @@
     "axios": "^1.12.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.0",
-    "express-rate-limit": "^8.1.0",
     "csv-parse": "^5.6.0",
+    "dotenv": "^16.0.0",
     "express": "^4.18.3",
     "express-fileupload": "^1.4.0",
+    "express-rate-limit": "^8.1.0",
     "form-data": "^4.0.4",
     "morgan": "^1.10.1",
     "mysql": "^2.18.1",
@@ -40,6 +41,7 @@
     "winston": "^3.8.2"
   },
   "devDependencies": {
-    "jest": "^30.3.0"
+    "jest": "^30.3.0",
+    "jest-html-reporter": "^4.4.0"
   }
 }

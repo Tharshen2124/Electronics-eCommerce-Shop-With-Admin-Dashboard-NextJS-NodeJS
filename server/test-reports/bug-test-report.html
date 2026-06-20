@@ -1,0 +1,277 @@
+<html><head><meta charset="utf-8"/><title>Software Evolution Bug Fix Test Report</title><style type="text/css">:root {
+  --text-primary: #111;
+  --text-secondary: #4f4f4f;
+  --success: #006633;
+  --success-bright: #80ffbf;
+  --danger: #cc071e;
+  --danger-bright: #fbdfe0;
+  --warning: #995c00;
+  --warning-bright: #ffeea8;
+  --panel: #eee;
+  --border: #949494;
+  --disabled: #6b6b6b;
+}
+
+html,
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 16px;
+  margin: 0;
+  padding: 0;
+  color: var(--text-primary);
+}
+body {
+  padding: 2rem 1rem;
+}
+.jesthtml-content {
+  margin: 0 auto;
+  max-width: 70rem;
+}
+header {
+  display: flex;
+  align-items: center;
+}
+#title {
+  margin: 0;
+  flex-grow: 1;
+}
+#logo {
+  height: 4rem;
+}
+#timestamp {
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+#metadata-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.additional-information-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+}
+
+/** SUMMARY */
+#summary {
+  color: var(--text-primary);
+  display: flex;
+  font-family: monospace;
+  font-size: 1rem;
+}
+#summary > div {
+  margin-right: 0.5rem;
+  background: var(--panel);
+  padding: 1rem;
+  min-width: 15rem;
+}
+#summary > div:last-child {
+  margin-right: 0;
+}
+@media only screen and (max-width: 720px) {
+  #summary {
+    flex-direction: column;
+  }
+  #summary > div {
+    margin-right: 0;
+    margin-top: 1rem;
+  }
+  #summary > div:first-child {
+    margin-top: 0;
+  }
+}
+
+.summary-total {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+.summary-passed {
+  color: var(--success);
+  border-left: 0.4rem solid var(--success);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-failed,
+.summary-obsolete-snapshots {
+  color: var(--danger);
+  border-left: 0.4rem solid var(--danger);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-pending {
+  color: var(--warning);
+  border-left: 0.4rem solid var(--warning);
+  padding-left: 0.5rem;
+  margin-bottom: 0.15rem;
+}
+.summary-empty {
+  color: var(--disabled);
+  border-left: 0.4rem solid var(--disabled);
+  margin-bottom: 0.15rem;
+}
+
+.test-result {
+  padding: 1rem;
+  margin-bottom: 0.25rem;
+}
+.test-result:last-child {
+  border: 0;
+}
+.test-result.passed {
+  background-color: var(--success-bright);
+  color: var(--success);
+}
+.test-result.failed {
+  background-color: var(--danger-bright);
+  color: var(--danger);
+}
+.test-result.pending {
+  background-color: var(--warning-bright);
+  color: var(--warning);
+}
+
+.test-info {
+  display: flex;
+  justify-content: space-between;
+}
+.test-suitename {
+  width: 20%;
+  text-align: left;
+  font-weight: bold;
+  word-break: break-word;
+}
+.test-title {
+  width: 40%;
+  text-align: left;
+  font-style: italic;
+}
+.test-status {
+  width: 20%;
+  text-align: right;
+}
+.test-duration {
+  width: 10%;
+  text-align: right;
+  font-size: 0.85rem;
+}
+
+.failureMessages {
+  padding: 0 1rem;
+  margin-top: 1rem;
+  border-top: 1px dashed var(--danger);
+}
+.failureMessages.suiteFailure {
+  border-top: none;
+}
+.failureMsg {
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+
+.suite-container {
+  margin-bottom: 1rem;
+}
+.suite-info {
+  padding: 1rem;
+  background-color: var(--panel);
+  color: var(--text-secondary);
+  border: 0.15rem solid;
+  border-color: var(--panel);
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+.suite-info:hover {
+  border-color: var(--border);
+  cursor: pointer;
+}
+.suite-info .suite-path {
+  word-break: break-all;
+  flex-grow: 1;
+  font-family: monospace;
+  font-size: 1rem;
+}
+.suite-info .suite-time {
+  margin-left: 1rem;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.85rem;
+}
+.suite-info .suite-time.warn {
+  background-color: var(--danger);
+  color: #fff;
+}
+.suite-info:before {
+  content: "\2303";
+  display: inline-block;
+  margin-right: 1rem;
+  transform: rotate(180deg) translateY(0.15rem);
+}
+.suite-container[open] .suite-info:before {
+  transform: rotate(0deg) translateY(0.15rem);
+}
+
+/* CONSOLE LOGS */
+.suite-consolelog {
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+  background-color: var(--panel);
+}
+.suite-consolelog-header {
+  font-weight: bold;
+}
+.suite-consolelog-item {
+  padding: 0.5rem;
+}
+.suite-consolelog-item pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+.suite-consolelog-item-origin {
+  color: var(--text-secondary);
+  font-weight: bold;
+}
+.suite-consolelog-item-message {
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding: 0 0.5rem;
+}
+
+/* OBSOLETE SNAPSHOTS */
+.suite-obsolete-snapshots {
+  margin-bottom: 0.25rem;
+  padding: 1rem;
+  background-color: var(--danger-bright);
+  color: var(--danger);
+}
+.suite-obsolete-snapshots-header {
+  font-weight: bold;
+}
+.suite-obsolete-snapshots-item {
+  padding: 0.5rem;
+}
+.suite-obsolete-snapshots-item pre {
+  margin: 0.5rem 0;
+  white-space: pre-wrap;
+  white-space: -moz-pre-wrap;
+  white-space: -pre-wrap;
+  white-space: -o-pre-wrap;
+  word-wrap: break-word;
+}
+.suite-obsolete-snapshots-item-message {
+  color: var(--text-primary);
+  font-size: 1rem;
+  padding: 0 0.5rem;
+}
+</style></head><body><main class="jesthtml-content"><header><h1 id="title">Software Evolution Bug Fix Test Report</h1></header><section id="metadata-container"><div id="timestamp">Started: 2026-06-21 01:07:26</div><div id="summary"><div id="suite-summary"><div class="summary-total">Suites (4)</div><div class="summary-passed ">4 passed</div><div class="summary-failed  summary-empty">0 failed</div><div class="summary-pending  summary-empty">0 pending</div></div><div id="test-summary"><div class="summary-total">Tests (41)</div><div class="summary-passed ">41 passed</div><div class="summary-failed  summary-empty">0 failed</div><div class="summary-pending  summary-empty">0 pending</div></div></div></section><details id="suite-1" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Pharthiban\Documents\Multimedia University\2026\Trimester 2610\CSE6324 - Software Verification and Validation\Electronics-eCommerce-Shop-With-Admin-Dashboard-NextJS-NodeJS\server\tests\jest\bug-c06-checkout-logic.test.js</div><div class="suite-time">1.773s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Item scope resolution</div><div class="test-title">should use buyNowItems when buyNowItems is non-empty</div><div class="test-status">passed</div><div class="test-duration">0.015s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Item scope resolution</div><div class="test-title">should use cart products when buyNowItems is empty</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Item scope resolution</div><div class="test-title">should return an empty array when both cart and buyNowItems are empty</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Item scope resolution</div><div class="test-title">should not include cart items when buyNow flow is active</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Total computation uses only the selected scope</div><div class="test-title">should compute total from buyNowItems only when buyNow flow is active</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Total computation uses only the selected scope</div><div class="test-title">should compute total from cart products when buyNowItems is empty</div><div class="test-status">passed</div><div class="test-duration"> </div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Total computation uses only the selected scope</div><div class="test-title">should return 0 total when checkout items list is empty</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Total computation uses only the selected scope</div><div class="test-title">should correctly sum multiple quantities</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Scope isolation – clearing one scope does not affect the other</div><div class="test-title">should clear buyNowItems without touching cart products</div><div class="test-status">passed</div><div class="test-duration"> </div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Scope isolation – clearing one scope does not affect the other</div><div class="test-title">should clear cart products without touching buyNowItems</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Scope isolation – clearing one scope does not affect the other</div><div class="test-title">should leave all items intact when no clear action is taken</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C06: Checkout Logic – only user-selected items are processed &gt; Scope isolation – clearing one scope does not affect the other</div><div class="test-title">should not mutate the original state when clearing a scope</div><div class="test-status">passed</div><div class="test-duration"> </div></div></div></div></details><details id="suite-2" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Pharthiban\Documents\Multimedia University\2026\Trimester 2610\CSE6324 - Software Verification and Validation\Electronics-eCommerce-Shop-With-Admin-Dashboard-NextJS-NodeJS\server\tests\jest\bug-c02-pagination-logic.test.js</div><div class="suite-time">1.787s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Total page calculation</div><div class="test-title">should compute totalPages correctly from total count</div><div class="test-status">passed</div><div class="test-duration">0.013s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Total page calculation</div><div class="test-title">should return 0 totalPages when total is 0 (no phantom pages)</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Total page calculation</div><div class="test-title">should return 1 totalPages when there is exactly one page of results</div><div class="test-status">passed</div><div class="test-duration">0.004s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Page parameter validation</div><div class="test-title">should default to page 1 when page parameter is missing or 0</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Page parameter validation</div><div class="test-title">should reject page numbers less than 1 and fall back to 1</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Page parameter validation</div><div class="test-title">should accept valid page numbers as-is</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Skip offset calculation</div><div class="test-title">should calculate correct skip offset for a given page</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Navigation boundary guard</div><div class="test-title">should block navigation when on the last page</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Navigation boundary guard</div><div class="test-title">should allow navigation when not on the last page</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Navigation boundary guard</div><div class="test-title">should block navigation when totalPages is 0 (empty results)</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Products controller response shape</div><div class="test-title">should return products, total, and pageSize in the response</div><div class="test-status">passed</div><div class="test-duration">0.006s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C02: Pagination Logic – correct page count and phantom page elimination &gt; Products controller response shape</div><div class="test-title">should return empty products array and total 0 when no results exist</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div></div></details><details id="suite-3" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Pharthiban\Documents\Multimedia University\2026\Trimester 2610\CSE6324 - Software Verification and Validation\Electronics-eCommerce-Shop-With-Admin-Dashboard-NextJS-NodeJS\server\tests\jest\bug-c01-user-data-model.test.js</div><div class="suite-time">1.805s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; User creation includes name and lastname</div><div class="test-title">should persist name and lastname alongside email and password</div><div class="test-status">passed</div><div class="test-duration">0.014s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; User creation includes name and lastname</div><div class="test-title">should return a user object that includes name and lastname fields</div><div class="test-status">passed</div><div class="test-duration">0.003s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; User creation includes name and lastname</div><div class="test-title">should allow name and lastname to be null (nullable fields)</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; Admin dashboard – user listing includes name and lastname</div><div class="test-title">should return all users with name and lastname for admin identification</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; Admin dashboard – user listing includes name and lastname</div><div class="test-title">should identify users by name rather than email alone</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C01: User Data Model – name and lastname persistence &gt; Admin dashboard – user listing includes name and lastname</div><div class="test-title">should handle database errors during user listing gracefully</div><div class="test-status">passed</div><div class="test-duration">0.027s</div></div></div></div></details><details id="suite-4" class="suite-container" open=""><summary class="suite-info"><div class="suite-path">C:\Users\Pharthiban\Documents\Multimedia University\2026\Trimester 2610\CSE6324 - Software Verification and Validation\Electronics-eCommerce-Shop-With-Admin-Dashboard-NextJS-NodeJS\server\tests\jest\bug-c04-search-state.test.js</div><div class="suite-time">1.694s</div></summary><div class="suite-tests"><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Search input persistence during async requests</div><div class="test-title">should retain search input value while loading is in progress</div><div class="test-status">passed</div><div class="test-duration">0.011s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Search input persistence during async requests</div><div class="test-title">should retain search input after async resolves with results</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Search input persistence during async requests</div><div class="test-title">should retain search input after async resolves with no results</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Independent loading, empty, and populated states</div><div class="test-title">should set isLoading true and isEmpty false while loading</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Independent loading, empty, and populated states</div><div class="test-title">should set isPopulated true and isLoading false after results arrive</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Independent loading, empty, and populated states</div><div class="test-title">should set isEmpty true and isPopulated false when no results are found</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Independent loading, empty, and populated states</div><div class="test-title">should never have isLoading and isEmpty both true at the same time</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Independent loading, empty, and populated states</div><div class="test-title">should never have isLoading and isPopulated both true at the same time</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Server-side search controller – missing query returns 400 not 500</div><div class="test-title">should return 400 when query parameter is missing</div><div class="test-status">passed</div><div class="test-duration">0.055s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Server-side search controller – missing query returns 400 not 500</div><div class="test-title">should return matching products when query is provided</div><div class="test-status">passed</div><div class="test-duration">0.002s</div></div></div><div class="test-result passed"><div class="test-info"><div class="test-suitename">BUG-C04: UI State Management – search input persistence and independent states &gt; Server-side search controller – missing query returns 400 not 500</div><div class="test-title">should return an empty array when no products match the query</div><div class="test-status">passed</div><div class="test-duration">0.001s</div></div></div></div></details></main></body></html>
